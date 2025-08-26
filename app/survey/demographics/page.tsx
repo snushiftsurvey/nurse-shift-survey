@@ -283,12 +283,12 @@ export default function DemographicsPage() {
           </div>
 
           <div className="mb-6">
-            <div className="flex space-x-4 mb-8">
+            <div className="flex space-x-2 sm:space-x-4 mb-8">
               {[1, 2, 3].map((step) => (
                 <button
                   key={step}
                   onClick={() => setCurrentStep(step)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`px-2 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
                     step === currentStep
                       ? 'bg-blue-600 text-white'
                       : step < currentStep
@@ -355,10 +355,11 @@ export default function DemographicsPage() {
                       type="number" 
                       value={formData.age}
                       onChange={(e) => handleFormDataChange('age', e.target.value)}
-                      className={`w-32 px-3 py-2 border rounded-lg focus:ring-2 ${getFieldErrorClass('age')}`}
+                      className={`w-32 px-3 py-2 border rounded-lg focus:ring-2 text-gray-900 ${getFieldErrorClass('age')}`}
                       placeholder="예: 28"
                       autoComplete="off"
                       autoFocus={false}
+                      style={{ color: '#111827', WebkitTextFillColor: '#111827' }}
                     />
                     {currentStep === 1 && !isFieldValid('age') && (
                       <p className="mt-1 text-sm text-red-600">연령을 입력해주세요</p>
@@ -373,8 +374,9 @@ export default function DemographicsPage() {
                       <select 
                         value={formData.hireYear}
                         onChange={(e) => handleFormDataChange('hireYear', e.target.value)}
-                        className={`px-3 py-2 border rounded-lg focus:ring-2 ${getFieldErrorClass('hireYear')}`}
+                        className={`px-3 py-2 border rounded-lg focus:ring-2 text-gray-900 ${getFieldErrorClass('hireYear')}`}
                         autoComplete="off"
+                        style={{ color: '#111827', WebkitTextFillColor: '#111827' }}
                       >
                         <option value="">년도 선택</option>
                         {Array.from({length: 30}, (_, i) => 2025 - i).map(year => (
@@ -384,8 +386,9 @@ export default function DemographicsPage() {
                       <select 
                         value={formData.hireMonth}
                         onChange={(e) => handleFormDataChange('hireMonth', e.target.value)}
-                        className={`px-3 py-2 border rounded-lg focus:ring-2 ${getFieldErrorClass('hireMonth')}`}
+                        className={`px-3 py-2 border rounded-lg focus:ring-2 text-gray-900 ${getFieldErrorClass('hireMonth')}`}
                         autoComplete="off"
+                        style={{ color: '#111827', WebkitTextFillColor: '#111827' }}
                       >
                         <option value="">월 선택</option>
                         {Array.from({length: 12}, (_, i) => i + 1).map(month => (
@@ -533,10 +536,10 @@ export default function DemographicsPage() {
             )}
           </div>
 
-          <div className="flex justify-between">
+          <div className="flex flex-row justify-between items-center gap-4">
             <button
               onClick={handlePrevious}
-              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-4 py-2 sm:px-6 sm:py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm sm:text-base flex-shrink-0"
             >
               이전
             </button>
@@ -544,7 +547,7 @@ export default function DemographicsPage() {
             <button
               onClick={handleNext}
               disabled={!canProceedToNext()}
-              className={`px-6 py-3 text-white rounded-lg transition-colors disabled:cursor-not-allowed ${
+              className={`px-4 py-2 sm:px-6 sm:py-3 text-white rounded-lg transition-colors disabled:cursor-not-allowed text-sm sm:text-base flex-shrink-0 ${
                 !canProceedToNext() 
                   ? 'bg-gray-300 text-gray-500 disabled:opacity-50'
                   : currentStep === 3
@@ -555,7 +558,7 @@ export default function DemographicsPage() {
             >
               {currentStep === 3 ? (
                 <span className="flex items-center">
-                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                   </svg>
                   근무표 제출하기

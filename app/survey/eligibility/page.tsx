@@ -164,15 +164,15 @@ export default function EligibilityPage() {
             </div>
           </div>
 
-          <div className="flex justify-between">
+          <div className="flex flex-row justify-between items-center gap-4">
             <button
               onClick={handlePrevious}
-              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-4 py-2 sm:px-6 sm:py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm sm:text-base flex-shrink-0"
             >
               이전
             </button>
             
-            <div className="text-sm text-gray-500">
+            <div className="text-xs sm:text-sm text-gray-500 text-right">
               선택하시면 자동으로 다음 단계로 진행됩니다
             </div>
           </div>

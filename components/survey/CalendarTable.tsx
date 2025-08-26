@@ -99,13 +99,13 @@ export default function CalendarTable({ workTypes, offDutyTypes, shiftData, onCh
         <div className="border border-gray-200 rounded-lg overflow-hidden">
           {/* 테이블 헤더 */}
           <div className="bg-gray-50 grid grid-cols-3 border-b border-gray-200">
-            <div className="p-3 text-center text-sm font-medium text-gray-700 border-r border-gray-200">
+            <div className="p-1 sm:p-2 md:p-3 text-center text-xs sm:text-sm font-medium text-gray-700 border-r border-gray-200">
               날짜
             </div>
-            <div className="p-3 text-center text-sm font-medium text-gray-700 border-r border-gray-200">
+            <div className="p-1 sm:p-2 md:p-3 text-center text-xs sm:text-sm font-medium text-gray-700 border-r border-gray-200">
               2025년 10월
             </div>
-            <div className="p-3 text-center text-sm font-medium text-gray-700">
+            <div className="p-1 sm:p-2 md:p-3 text-center text-xs sm:text-sm font-medium text-gray-700">
               2025년 11월
             </div>
           </div>
@@ -123,14 +123,14 @@ export default function CalendarTable({ workTypes, offDutyTypes, shiftData, onCh
               return (
                 <div key={day} className="grid grid-cols-3 min-h-[60px] md:min-h-[50px]">
                   {/* 날짜 */}
-                  <div className="p-2 md:p-3 border-r border-gray-200 flex items-center justify-center">
-                    <span className="text-sm font-medium text-gray-900">
+                  <div className="p-1 sm:p-2 md:p-3 border-r border-gray-200 flex items-center justify-center w-12 sm:w-16 md:w-auto">
+                    <span className="text-xs sm:text-sm font-medium text-gray-900">
                       {day}일
                     </span>
                   </div>
 
                   {/* 10월 */}
-                  <div className="p-1 md:p-2 border-r border-gray-200 flex items-center">
+                  <div className="p-1 sm:p-2 border-r border-gray-200 flex items-center justify-center">
                     <select
                       key={`october-${day}`}
                       value={(() => {
@@ -143,18 +143,19 @@ export default function CalendarTable({ workTypes, offDutyTypes, shiftData, onCh
                         return allValidIds.includes(currentValue) ? currentValue : ''
                       })()}
                       onChange={(e) => handleDateChange(octoberDateKey, e.target.value)}
-                      className={`w-full text-xs md:text-sm border rounded px-1 py-1 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                      className={`w-full text-xs md:text-sm border rounded px-1 py-0.5 sm:py-1 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-gray-900 ${
                         selectedOctoberWorkType && selectedOctoberWorkType.trim() !== ''
                           ? 'border-blue-300 bg-blue-50 text-blue-900 font-medium' 
                           : 'border-gray-300 hover:border-gray-400'
                       }`}
+                      style={{ color: '#111827', WebkitTextFillColor: '#111827' }}
                     >
                       {renderSelectOptions()}
                     </select>
                   </div>
 
-                  {/* 11월 */}
-                  <div className="p-1 md:p-2 flex items-center">
+                                    {/* 11월 */}
+                  <div className="p-1 sm:p-2 flex items-center justify-center">
                     {hasNovemberDay ? (
                       <select
                         key={`november-${day}`}
@@ -168,11 +169,12 @@ export default function CalendarTable({ workTypes, offDutyTypes, shiftData, onCh
                           return allValidIds.includes(currentValue) ? currentValue : ''
                         })()}
                         onChange={(e) => handleDateChange(novemberDateKey, e.target.value)}
-                        className={`w-full text-xs md:text-sm border rounded px-1 py-1 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                        className={`w-full text-xs md:text-sm border rounded px-1 py-0.5 sm:py-1 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-gray-900 ${
                           selectedNovemberWorkType && selectedNovemberWorkType.trim() !== ''
-                            ? 'border-blue-300 bg-blue-50 text-blue-900 font-medium' 
+                            ? 'border-blue-300 bg-blue-50 text-blue-900 font-medium'
                             : 'border-gray-300 hover:border-gray-400'
                         }`}
+                        style={{ color: '#111827', WebkitTextFillColor: '#111827' }}
                       >
                         {renderSelectOptions()}
                       </select>

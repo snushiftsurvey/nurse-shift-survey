@@ -195,9 +195,10 @@ export default function PersonalInfoPage() {
                     value={personalInfo.name}
                     onChange={(e) => setPersonalInfo({...personalInfo, name: e.target.value})}
                     placeholder="실명을 입력해주세요"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                     autoComplete="off"
                     autoFocus={false}
+                    style={{ color: '#111827', WebkitTextFillColor: '#111827' }}
                   />
                 </div>
 
@@ -211,9 +212,10 @@ export default function PersonalInfoPage() {
                     onChange={(e) => setPersonalInfo({...personalInfo, birthDate: e.target.value.replace(/\D/g, '')})}
                     placeholder="예: 19900101"
                     maxLength={8}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                     autoComplete="off"
                     autoFocus={false}
+                    style={{ color: '#111827', WebkitTextFillColor: '#111827' }}
                   />
                 </div>
 
@@ -227,19 +229,20 @@ export default function PersonalInfoPage() {
                     onChange={(e) => setPersonalInfo({...personalInfo, phoneNumber: e.target.value.replace(/\D/g, '')})}
                     placeholder="예: 01012345678"
                     maxLength={11}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                     autoComplete="off"
                     autoFocus={false}
+                    style={{ color: '#111827', WebkitTextFillColor: '#111827' }}
                   />
                 </div>
               </div>
             )}
           </div>
 
-          <div className="flex justify-between">
+          <div className="flex flex-row justify-between items-center gap-4">
             <Link
               href="/survey/demographics"
-              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-4 py-2 sm:px-6 sm:py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm sm:text-base flex-shrink-0"
             >
               이전
             </Link>
@@ -247,7 +250,7 @@ export default function PersonalInfoPage() {
             <button
               onClick={handleSubmit}
               disabled={consentPersonalInfo === null || isSubmitting}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+              className="px-4 py-2 sm:px-6 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed text-sm sm:text-base flex-shrink-0"
             >
               {isSubmitting ? '제출 중...' : '설문 완료'}
             </button>
