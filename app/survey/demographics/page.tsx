@@ -517,7 +517,7 @@ export default function DemographicsPage() {
                             onClick={fillAllDatesWithFirstWorkType}
                             className="px-4 py-2 bg-yellow-600 text-white text-sm rounded-lg hover:bg-yellow-700 transition-colors"
                           >
-                            🚀 모든 날짜 채우기
+                            모든 날짜 채우기
                           </button>
                         </div>
                       </div>

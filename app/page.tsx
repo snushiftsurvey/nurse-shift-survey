@@ -61,35 +61,35 @@ export default function HomePage() {
       isNavigating ? 'opacity-90' : 'opacity-100'
     }`}>
       <div className="max-w-2xl mx-auto text-center">
-        <div className={`bg-white rounded-lg shadow-xl p-6 md:p-12 transition-transform duration-300 ${
+        <div className={`bg-white rounded-lg shadow-xl p-4 md:p-12 transition-transform duration-300 ${
           isNavigating ? 'scale-98' : 'scale-100'
         }`}>
-          <h1 className="text-2xl md:text-4xl font-bold text-gray-900 mb-6">
+          <h1 className="text-xl md:text-4xl font-bold text-gray-900 mb-4 md:mb-6">
             간호사 교대근무 설문조사
           </h1>
           
-          <div className="text-gray-600 mb-8 space-y-1">
-            <p className="text-sm md:text-lg leading-tight">
+          <div className="text-gray-600 mb-4 md:mb-8 space-y-1">
+            <p className="text-xs md:text-lg leading-tight">
               서울대학교 간호대학에서 진행하는
             </p>
-            <p className="text-sm md:text-lg font-medium leading-tight">
+            <p className="text-xs md:text-lg font-medium leading-tight">
               교대근무 간호사 2개월 근무표 수집 연구
             </p>
           </div>
 
-          <div className="flex items-center gap-4 md:gap-6 mb-8">
+          <div className="flex items-center gap-2 md:gap-6 mb-4 md:mb-8">
             <Image
               src="/images/icons/speakers.png"
               alt="안내"
               width={100}
               height={100}
-              className="w-20 h-20 md:w-28 md:h-28 lg:w-32 lg:h-32 flex-shrink-0"
+              className="w-12 h-12 md:w-28 md:h-28 lg:w-32 lg:h-32 flex-shrink-0"
             />
-            <div className="bg-blue-50 rounded-lg p-4 md:p-6 flex-1">
-              <h2 className="text-base md:text-lg font-semibold text-gray-800 mb-4">
+            <div className="bg-blue-50 rounded-lg p-2 md:p-6 flex-1">
+              <h2 className="text-sm md:text-lg font-semibold text-gray-800 mb-2 md:mb-4">
                 설문 참여 안내
               </h2>
-              <ul className="text-gray-600 space-y-2 text-left text-sm md:text-base">
+              <ul className="text-gray-600 space-y-1 md:space-y-2 text-left text-xs md:text-base">
                 <li>• 소요시간: 약 20분</li>
                 <li>• 답례품: 5,000원 상당 모바일 기프티콘</li>
                 <li>• 개인정보는 답례품 지급 후 즉시 폐기</li>
@@ -100,7 +100,7 @@ export default function HomePage() {
           <button
             onClick={handleStartSurvey}
             disabled={isNavigating}
-            className={`group inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 md:py-3 px-4 md:px-6 rounded-lg transition-all duration-300 text-base md:text-lg transform hover:scale-105 active:scale-95 ${
+            className={`group inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 md:py-3 px-4 md:px-6 rounded-lg transition-all duration-300 text-sm md:text-lg transform hover:scale-105 active:scale-95 ${
               isNavigating 
                 ? 'opacity-75 cursor-not-allowed scale-95' 
                 : 'hover:shadow-lg animate-pulse hover:animate-none'
@@ -118,7 +118,7 @@ export default function HomePage() {
               ) : (
                 <>
                   설문조사 시작하기
-                  <svg className="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 md:w-5 md:h-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </>
@@ -126,9 +126,7 @@ export default function HomePage() {
             </span>
           </button>
           
-          <p className="text-xs md:text-sm text-gray-500 mt-6">
-            서울대학교 간호대학 조성현 교수 연구팀
-          </p>
+       
         </div>
       </div>
     </div>

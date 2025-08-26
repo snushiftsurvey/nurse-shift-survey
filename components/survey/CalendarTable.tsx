@@ -98,7 +98,7 @@ export default function CalendarTable({ workTypes, offDutyTypes, shiftData, onCh
       ) : (
         <div className="border border-gray-200 rounded-lg overflow-hidden">
           {/* 테이블 헤더 */}
-          <div className="bg-gray-50 grid grid-cols-3 border-b border-gray-200">
+          <div className="bg-gray-50 grid border-b border-gray-200" style={{ gridTemplateColumns: '50px 1fr 1fr' }}>
             <div className="p-1 sm:p-2 md:p-3 text-center text-xs sm:text-sm font-medium text-gray-700 border-r border-gray-200">
               날짜
             </div>
@@ -121,16 +121,16 @@ export default function CalendarTable({ workTypes, offDutyTypes, shiftData, onCh
                 const hasNovemberDay = day <= november2025Days
 
               return (
-                <div key={day} className="grid grid-cols-3 min-h-[60px] md:min-h-[50px]">
+                <div key={day} className="grid min-h-[60px] md:min-h-[50px]" style={{ gridTemplateColumns: '50px 1fr 1fr' }}>
                   {/* 날짜 */}
-                  <div className="p-1 sm:p-2 md:p-3 border-r border-gray-200 flex items-center justify-center w-12 sm:w-16 md:w-auto">
+                  <div className="p-1 sm:p-2 md:p-3 border-r border-gray-200 flex items-center justify-center">
                     <span className="text-xs sm:text-sm font-medium text-gray-900">
                       {day}일
                     </span>
                   </div>
 
                   {/* 10월 */}
-                  <div className="p-1 sm:p-2 border-r border-gray-200 flex items-center justify-center">
+                  <div className="p-1 sm:p-2 border-r border-gray-200 flex items-center">
                     <select
                       key={`october-${day}`}
                       value={(() => {
@@ -155,7 +155,7 @@ export default function CalendarTable({ workTypes, offDutyTypes, shiftData, onCh
                   </div>
 
                                     {/* 11월 */}
-                  <div className="p-1 sm:p-2 flex items-center justify-center">
+                  <div className="p-1 sm:p-2 flex items-center">
                     {hasNovemberDay ? (
                       <select
                         key={`november-${day}`}
@@ -179,7 +179,7 @@ export default function CalendarTable({ workTypes, offDutyTypes, shiftData, onCh
                         {renderSelectOptions()}
                       </select>
                     ) : (
-                      <div className="w-full text-center text-gray-400 text-sm">
+                      <div className="w-full text-center text-gray-400 text-xs">
                         -
                       </div>
                     )}
