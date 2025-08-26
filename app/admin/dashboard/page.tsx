@@ -371,7 +371,7 @@ export default function AdminDashboardPage() {
           escapeCsvField(survey.hire_month),
           escapeCsvField(survey.personal_info?.[0]?.name || ''),
           escapeCsvField(survey.personal_info?.[0]?.birth_date || ''),
-          escapeCsvField(survey.personal_info?.[0]?.phone_number || '')
+          `="${survey.personal_info?.[0]?.phone_number || ''}"`
         ]
         
         // 근무유형 정의 데이터 (최대 4개)
