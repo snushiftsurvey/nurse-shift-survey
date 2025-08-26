@@ -61,7 +61,11 @@ export default function AdminLoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
+      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 relative overflow-hidden">
+        {/* 파랑색 책갈피 */}
+        <div className="absolute top-0 left-0 w-16 h-16 md:w-20 md:h-20">
+          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-600 to-blue-700 transform rotate-45 -translate-x-8 -translate-y-8 md:-translate-x-10 md:-translate-y-10 shadow-lg"></div>
+        </div>
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
             관리자 로그인
@@ -105,7 +109,11 @@ export default function AdminLoginPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className={`w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-all duration-300 transform hover:scale-105 active:scale-95 ${
+              isLoading 
+                ? 'bg-gray-400 cursor-not-allowed scale-95 opacity-75' 
+                : 'hover:shadow-lg animate-pulse hover:animate-none'
+            }`}
           >
             {isLoading ? '로그인 중...' : '로그인'}
           </button>

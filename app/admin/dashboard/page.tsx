@@ -727,11 +727,11 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-8 lg:px-12 py-6">
+      <header className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-8 lg:px-12 py-4">
           <div className="flex justify-between items-center">
             <h1 className="text-2xl font-bold text-gray-900">
-              설문조사 관리 대시보드
+              ADMIN DASHBOARD
             </h1>
             <div className="flex space-x-4">
               {/* 선택된 항목 표시 (항상 표시) */}
@@ -823,7 +823,11 @@ export default function AdminDashboardPage() {
 
         {/* 통계 카드 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-6 relative overflow-hidden">
+            {/* 파랑색 책갈피 */}
+            <div className="absolute top-0 left-0 w-12 h-12 md:w-14 md:h-14">
+              <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-600 to-blue-700 transform rotate-45 -translate-x-6 -translate-y-6 md:-translate-x-7 md:-translate-y-7 shadow-lg"></div>
+            </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
               총 응답 수
             </h3>
@@ -836,7 +840,11 @@ export default function AdminDashboardPage() {
             )}
           </div>
           
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-6 relative overflow-hidden">
+            {/* 파랑색 책갈피 */}
+            <div className="absolute top-0 left-0 w-12 h-12 md:w-14 md:h-14">
+              <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-600 to-blue-700 transform rotate-45 -translate-x-6 -translate-y-6 md:-translate-x-7 md:-translate-y-7 shadow-lg"></div>
+            </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
               개인정보 제공
             </h3>
@@ -849,7 +857,11 @@ export default function AdminDashboardPage() {
             )}
           </div>
           
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-6 relative overflow-hidden">
+            {/* 파랑색 책갈피 */}
+            <div className="absolute top-0 left-0 w-12 h-12 md:w-14 md:h-14">
+              <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-600 to-blue-700 transform rotate-45 -translate-x-6 -translate-y-6 md:-translate-x-7 md:-translate-y-7 shadow-lg"></div>
+            </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
               최근 응답
             </h3>
