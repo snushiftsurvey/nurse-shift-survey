@@ -57,31 +57,35 @@ export default function HomePage() {
     }
   }
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4 transition-opacity duration-500 ${
+    <div className={`min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-1 py-4 transition-opacity duration-500 ${
       isNavigating ? 'opacity-90' : 'opacity-100'
     }`}>
       <div className="max-w-2xl mx-auto text-center">
-        <div className={`bg-white rounded-lg shadow-xl p-4 md:p-12 transition-transform duration-300 ${
+        <div className={`bg-white rounded-lg shadow-xl p-8 md:p-18 transition-transform duration-300 relative overflow-hidden ${
           isNavigating ? 'scale-98' : 'scale-100'
         }`}>
+          {/* 파랑색 책갈피 */}
+          <div className="absolute top-0 left-0 w-16 h-16 md:w-20 md:h-20">
+            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-600 to-blue-700 transform rotate-45 -translate-x-8 -translate-y-8 md:-translate-x-10 md:-translate-y-10 shadow-lg"></div>
+          </div>
           <h1 className="text-xl md:text-4xl font-bold text-gray-900 mb-4 md:mb-6">
             간호사 교대근무 설문조사
           </h1>
           
-          <div className="text-gray-600 mb-4 md:mb-8 space-y-1">
+          <div className="text-gray-600 mb-6 md:mb-8 space-y-1">
        
             <p className="text-xs md:text-lg font-medium leading-tight">
               교대근무 간호사 2개월 근무표 수집 연구
             </p>
           </div>
 
-          <div className="flex items-center gap-2 md:gap-6 mb-4 md:mb-8">
+          <div className="flex items-center gap-2 md:gap-6 mb-6 md:mb-10">
             <Image
               src="/images/icons/speakers.png"
               alt="안내"
-              width={100}
-              height={100}
-              className="w-12 h-12 md:w-28 md:h-28 lg:w-32 lg:h-32 flex-shrink-0"
+              width={120}
+              height={120}
+              className="w-20 h-20 md:w-32 md:h-32 lg:w-32 lg:h-32 flex-shrink-0"
             />
             <div className="bg-blue-50 rounded-lg p-2 md:p-6 flex-1">
               <h2 className="text-sm md:text-lg font-semibold text-gray-800 mb-2 md:mb-4">

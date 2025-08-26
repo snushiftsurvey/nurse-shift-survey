@@ -317,7 +317,7 @@ export default function DemographicsPage() {
                       성별 <span className="text-red-500">*</span>
                     </label>
                     <div className="flex space-x-4">
-                      <label className="flex items-center">
+                      <label className="flex items-center text-gray-900">
                         <input 
                           type="radio" 
                           name="gender" 
@@ -329,7 +329,7 @@ export default function DemographicsPage() {
                         />
                         여성
                       </label>
-                      <label className="flex items-center">
+                      <label className="flex items-center text-gray-900">
                         <input 
                           type="radio" 
                           name="gender" 
