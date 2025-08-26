@@ -58,6 +58,10 @@ export default function AdminDashboardPage() {
   const [authLoading, setAuthLoading] = useState(true)
   const [currentUser, setCurrentUser] = useState<any>(null)
   
+  // 정렬 상태 관리
+  const [sortField, setSortField] = useState<string>('created_at')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
+  
   const router = useRouter()
 
   // 코드 값을 한국어로 변환하는 매핑 함수들
@@ -97,6 +101,58 @@ export default function AdminDashboardPage() {
       case 'integrated-care-ward': return '통합병동'
       default: return department
     }
+  }
+
+  // 정렬 함수
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      // 같은 필드 클릭 시 방향 토글
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      // 다른 필드 클릭 시 해당 필드로 변경하고 기본은 내림차순
+      setSortField(field)
+      setSortDirection('desc')
+    }
+  }
+
+  // 정렬된 설문 데이터
+  const sortedSurveys = [...surveys].sort((a, b) => {
+    let aValue: any = a[sortField as keyof SurveyData]
+    let bValue: any = b[sortField as keyof SurveyData]
+
+    // 특별한 정렬 로직
+    if (sortField === 'hire_date') {
+      // 입사연월 정렬 (년도와 월을 조합)
+      aValue = a.hire_year * 100 + a.hire_month
+      bValue = b.hire_year * 100 + b.hire_month
+    } else if (sortField === 'created_at') {
+      // 날짜 정렬
+      aValue = new Date(a.created_at).getTime()
+      bValue = new Date(b.created_at).getTime()
+    } else if (typeof aValue === 'string') {
+      // 문자열 정렬 (한글 포함)
+      aValue = aValue.toLowerCase()
+      bValue = bValue.toLowerCase()
+    }
+
+    if (aValue < bValue) {
+      return sortDirection === 'asc' ? -1 : 1
+    }
+    if (aValue > bValue) {
+      return sortDirection === 'asc' ? 1 : -1
+    }
+    return 0
+  })
+
+  // 정렬 아이콘 컴포넌트
+  const SortIcon = ({ field }: { field: string }) => {
+    const isActive = sortField === field
+    
+    return (
+      <svg className={`w-4 h-4 ${isActive ? 'text-gray-600' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
+      </svg>
+    )
   }
 
   // 특정 설문의 상세 정보 조회 (근무표 포함)
@@ -240,20 +296,26 @@ export default function AdminDashboardPage() {
       const allDates = generateDates()
       console.log('📅 생성된 날짜 배열:', allDates.length, '개 (10월 31일 + 11월 30일)')
 
-      // CSV 헤더 생성 (기본 정보 + 일별 근무 열)
+      // CSV 헤더 생성 (기본 정보 + 근무유형 정의 + 휴무유형 정의 + 일별 근무 열)
       const basicHeaders = [
-        'ID', '성별', '연령', '입사년도', '입사월', '의료기관유형', '지역', '부서',
-        '개인정보동의', '이름', '생년월일', '전화번호', '응답일시'
+        'ID', '의료기관', '소재지', '부서', '성별', '연령', '입사 연도', '입사월', 
+        '성명', '생년월일', '휴대폰번호'
       ]
       
-      // 일별 근무 헤더 추가 (10-01, 10-02, ..., 11-30)
-      const dateHeaders = allDates.map(date => {
-        const [year, month, day] = date.split('-')
-        return `${month}-${day}`
-      })
+      // 근무유형 정의 헤더 (최대 4개 근무유형)
+      const workTypeHeaders = []
+      for (let i = 1; i <= 4; i++) {
+        workTypeHeaders.push(`근무${i}`, `근무${i}시작`, `근무${i}종료`, `근무${i}휴게`)
+      }
       
-      const headers = [...basicHeaders, ...dateHeaders].join(',')
-      console.log('📋 헤더 생성 완료:', basicHeaders.length + dateHeaders.length, '개 열')
+      // 휴무유형 정의 헤더
+      const offDutyHeaders = ['휴무1', '휴무2']
+      
+      // 일별 근무 헤더 추가 (2025-10-01, 2025-10-02, ..., 2025-11-30)
+      const dateHeaders = allDates.map(date => date)
+      
+      const headers = [...basicHeaders, ...workTypeHeaders, ...offDutyHeaders, ...dateHeaders].join(',')
+      console.log('📋 헤더 생성 완료:', basicHeaders.length + workTypeHeaders.length + offDutyHeaders.length + dateHeaders.length, '개 열')
 
       // 근무유형 ID를 상세 정보로 변환하는 함수 (시간 정보 포함)
       const getShiftTypeDetail = (shiftId: string, workTypes: any[], offDutyTypes: any[]) => {
@@ -291,31 +353,58 @@ export default function AdminDashboardPage() {
         return str
       }
 
+
+
       // CSV 데이터 생성
       const csvData = data.map(survey => {
         console.log('🔍 처리 중인 설문 ID:', survey.id.substring(0, 8))
         
-        // 기본 정보 (모든 필드를 안전하게 이스케이프)
+        // 기본 정보 (클라이언트 요청 순서대로 재배열)
         const basicData = [
           escapeCsvField(survey.id),
+          escapeCsvField(getInstitutionTypeLabel(survey.medical_institution_type)),
+          escapeCsvField(getLocationLabel(survey.medical_institution_location)),
+          escapeCsvField(getDepartmentLabel(survey.department)),
           escapeCsvField(getGenderLabel(survey.gender)),
           escapeCsvField(survey.age),
           escapeCsvField(survey.hire_year),
           escapeCsvField(survey.hire_month),
-          escapeCsvField(getInstitutionTypeLabel(survey.medical_institution_type)),
-          escapeCsvField(getLocationLabel(survey.medical_institution_location)), // ⭐ 이 부분이 핵심 수정
-          escapeCsvField(getDepartmentLabel(survey.department)),
-          escapeCsvField(survey.consent_personal_info ? '동의' : '비동의'),
           escapeCsvField(survey.personal_info?.[0]?.name || ''),
           escapeCsvField(survey.personal_info?.[0]?.birth_date || ''),
-          escapeCsvField(survey.personal_info?.[0]?.phone_number || ''),
-          escapeCsvField(new Date(survey.created_at).toLocaleString('ko-KR'))
+          escapeCsvField(survey.personal_info?.[0]?.phone_number || '')
         ]
         
-        // 일별 근무 데이터 추가
-        const shiftData = survey.shift_data || {}
+        // 근무유형 정의 데이터 (최대 4개)
         const workTypes = survey.work_types || []
+        const workTypeData = []
+        for (let i = 0; i < 4; i++) {
+          const workType = workTypes[i]
+          if (workType) {
+            workTypeData.push(
+              escapeCsvField(workType.name || ''),
+              escapeCsvField(workType.startTime || ''),
+              escapeCsvField(workType.endTime || ''),
+              escapeCsvField(workType.breakTime === 'custom' ? workType.customBreakTime || '' : workType.breakTime || '')
+            )
+          } else {
+            workTypeData.push('', '', '', '') // 빈 데이터
+          }
+        }
+        
+        // 휴무유형 정의 데이터 (최대 2개)
         const offDutyTypes = survey.off_duty_types || []
+        const offDutyData = []
+        for (let i = 0; i < 2; i++) {
+          const offDutyType = offDutyTypes[i]
+          if (offDutyType) {
+            offDutyData.push(escapeCsvField(offDutyType.name || ''))
+          } else {
+            offDutyData.push('') // 빈 데이터
+          }
+        }
+        
+        // 일별 근무 데이터 추가 (근무명칭만 표시, 시간정보 제외)
+        const shiftData = survey.shift_data || {}
         
         console.log('  - shift_data 키 개수:', Object.keys(shiftData).length)
         console.log('  - work_types 개수:', workTypes.length)
@@ -323,13 +412,24 @@ export default function AdminDashboardPage() {
         
         const dailyShifts = allDates.map(date => {
           const shiftId = shiftData[date]
-          if (!shiftId) return escapeCsvField('미입력')
+          if (!shiftId) return escapeCsvField('')
           
-          const shiftDetail = getShiftTypeDetail(shiftId, workTypes, offDutyTypes)
-          return escapeCsvField(shiftDetail)
+          // 근무유형에서 찾기
+          const workType = workTypes?.find((wt: any) => wt.id === shiftId)
+          if (workType) {
+            return escapeCsvField(workType.name || '')
+          }
+          
+          // 휴무유형에서 찾기
+          const offDutyType = offDutyTypes?.find((odt: any) => odt.id === shiftId)
+          if (offDutyType) {
+            return escapeCsvField(offDutyType.name || '')
+          }
+          
+          return escapeCsvField('')
         })
         
-        return [...basicData, ...dailyShifts].join(',')
+        return [...basicData, ...workTypeData, ...offDutyData, ...dailyShifts].join(',')
       }).join('\n')
 
       console.log('✅ CSV 데이터 생성 완료')
@@ -628,7 +728,7 @@ export default function AdminDashboardPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <header className="bg-white shadow-sm border-b">
-        <div className="max-w-full mx-auto px-6 py-6">
+        <div className="max-w-7xl mx-auto px-8 lg:px-12 py-6">
           <div className="flex justify-between items-center">
             <h1 className="text-2xl font-bold text-gray-900">
               설문조사 관리 대시보드
@@ -702,7 +802,7 @@ export default function AdminDashboardPage() {
         </div>
       </header>
 
-      <main className="max-w-full mx-auto px-6 py-8">
+      <main className="max-w-7xl mx-auto px-8 lg:px-12 py-8">
         {/* 에러 메시지 */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
@@ -755,10 +855,10 @@ export default function AdminDashboardPage() {
             </h3>
             {loading ? (
               <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
-            ) : surveys.length > 0 ? (
+            ) : sortedSurveys.length > 0 ? (
               <div className="text-sm text-gray-600">
-                <p>{new Date(surveys[0].created_at).toLocaleDateString('ko-KR')}</p>
-                <p className="text-xs text-gray-500">{new Date(surveys[0].created_at).toLocaleTimeString('ko-KR')}</p>
+                <p>{new Date(sortedSurveys[0].created_at).toLocaleDateString('ko-KR')}</p>
+                <p className="text-xs text-gray-500">{new Date(sortedSurveys[0].created_at).toLocaleTimeString('ko-KR')}</p>
               </div>
             ) : (
               <p className="text-sm text-gray-500">응답 없음</p>
@@ -769,9 +869,24 @@ export default function AdminDashboardPage() {
         {/* 응답 목록 테이블 */}
         <div className="bg-white rounded-lg shadow">
           <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-            <h2 className="text-xl font-semibold text-gray-900">
-              설문 응답 목록
-            </h2>
+            <div className="flex items-center space-x-4">
+              <h2 className="text-xl font-semibold text-gray-900">
+                설문 응답 목록
+              </h2>
+              {!loading && surveys.length > 0 && (
+                <div className="text-sm bg-gray-100 px-3 py-1 rounded-full flex items-center space-x-2">
+                  <span className="text-blue-600">
+                    정렬: {sortField === 'created_at' ? '응답일시' : 
+                          sortField === 'hire_date' ? '입사연월' :
+                          sortField === 'age' ? '연령' :
+                          sortField === 'medical_institution_type' ? '의료기관' :
+                          sortField === 'department' ? '부서' :
+                          sortField === 'medical_institution_location' ? '지역' : sortField}
+                  </span>
+                  <SortIcon field={sortField} />
+                </div>
+              )}
+            </div>
             {!loading && surveys.length > 0 && (
               <button 
                 onClick={fetchSurveys}
@@ -814,25 +929,73 @@ export default function AdminDashboardPage() {
                       </div>
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      입사연월
+                      <button 
+                        onClick={() => handleSort('hire_date')}
+                        className={`flex items-center space-x-1 hover:text-gray-700 transition-colors ${
+                          sortField === 'hire_date' ? 'text-blue-600' : ''
+                        }`}
+                      >
+                        <span>입사연월</span>
+                        <SortIcon field="hire_date" />
+                      </button>
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      성별/연령
+                      <button 
+                        onClick={() => handleSort('age')}
+                        className={`flex items-center space-x-1 hover:text-gray-700 transition-colors ${
+                          sortField === 'age' ? 'text-blue-600' : ''
+                        }`}
+                      >
+                        <span>성별/연령</span>
+                        <SortIcon field="age" />
+                      </button>
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      의료기관
+                      <button 
+                        onClick={() => handleSort('medical_institution_type')}
+                        className={`flex items-center space-x-1 hover:text-gray-700 transition-colors ${
+                          sortField === 'medical_institution_type' ? 'text-blue-600' : ''
+                        }`}
+                      >
+                        <span>의료기관</span>
+                        <SortIcon field="medical_institution_type" />
+                      </button>
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      부서
+                      <button 
+                        onClick={() => handleSort('department')}
+                        className={`flex items-center space-x-1 hover:text-gray-700 transition-colors ${
+                          sortField === 'department' ? 'text-blue-600' : ''
+                        }`}
+                      >
+                        <span>부서</span>
+                        <SortIcon field="department" />
+                      </button>
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      지역
+                      <button 
+                        onClick={() => handleSort('medical_institution_location')}
+                        className={`flex items-center space-x-1 hover:text-gray-700 transition-colors ${
+                          sortField === 'medical_institution_location' ? 'text-blue-600' : ''
+                        }`}
+                      >
+                        <span>지역</span>
+                        <SortIcon field="medical_institution_location" />
+                      </button>
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       개인정보
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      응답일시
+                      <button 
+                        onClick={() => handleSort('created_at')}
+                        className={`flex items-center space-x-1 hover:text-gray-700 transition-colors ${
+                          sortField === 'created_at' ? 'text-blue-600' : ''
+                        }`}
+                      >
+                        <span>응답일시</span>
+                        <SortIcon field="created_at" />
+                      </button>
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       액션
@@ -840,7 +1003,7 @@ export default function AdminDashboardPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {surveys.map((survey) => (
+                  {sortedSurveys.map((survey) => (
                     <tr key={survey.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         <input

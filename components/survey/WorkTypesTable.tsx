@@ -97,7 +97,7 @@ export default function WorkTypesTable({ workTypes, onChange }: WorkTypesTablePr
                       type="text"
                       value={workType.name}
                       onChange={(e) => updateWorkType(index, 'name', e.target.value)}
-                      placeholder="예: 데이, 나이트, 이브닝"
+                      placeholder="예: 데이, 나이트"
                       className="w-full px-1 md:px-3 py-1.5 md:py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs md:text-sm text-gray-900 h-8 md:h-10"
                       style={{ color: '#111827', WebkitTextFillColor: '#111827' }}
                       autoComplete="off"
@@ -140,7 +140,7 @@ export default function WorkTypesTable({ workTypes, onChange }: WorkTypesTablePr
                       type="text"
                       value={workType.customBreakTime || ''}
                       onChange={(e) => updateWorkType(index, 'customBreakTime', e.target.value)}
-                      placeholder="예: 1시간, 30분"
+                      placeholder="예:30분"
                       className="w-full px-1 md:px-3 py-1.5 md:py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs md:text-sm text-gray-900 h-8 md:h-10"
                       style={{ color: '#111827', WebkitTextFillColor: '#111827' }}
                       autoComplete="off"

@@ -69,9 +69,7 @@ export default function HomePage() {
           </h1>
           
           <div className="text-gray-600 mb-4 md:mb-8 space-y-1">
-            <p className="text-xs md:text-lg leading-tight">
-              서울대학교 간호대학에서 진행하는
-            </p>
+       
             <p className="text-xs md:text-lg font-medium leading-tight">
               교대근무 간호사 2개월 근무표 수집 연구
             </p>
@@ -89,7 +87,7 @@ export default function HomePage() {
               <h2 className="text-sm md:text-lg font-semibold text-gray-800 mb-2 md:mb-4">
                 설문 참여 안내
               </h2>
-              <ul className="text-gray-600 space-y-1 md:space-y-2 text-left text-xs md:text-base">
+              <ul className="text-gray-500 space-y-1 md:space-y-2 text-left text-[13px] md:text-base">
                 <li>• 소요시간: 약 20분</li>
                 <li>• 답례품: 5,000원 상당 모바일 기프티콘</li>
                 <li>• 개인정보는 답례품 지급 후 즉시 폐기</li>

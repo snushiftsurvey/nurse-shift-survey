@@ -45,10 +45,7 @@ export default function AdminLoginPage() {
       }
 
       if (data.user) {
-        console.log('✅ 로그인 성공 (아이디):', credentials.username)
-        console.log('✅ 로그인 성공 (이메일):', data.user.email)
-        console.log('🔐 사용자 역할:', data.user.role || 'authenticated')
-        alert('✅ 관리자 로그인 성공!')
+
         router.push('/admin/dashboard')
       } else {
         alert('로그인에 실패했습니다.')
@@ -85,8 +82,8 @@ export default function AdminLoginPage() {
               value={credentials.username}
               onChange={(e) => setCredentials({...credentials, username: e.target.value})}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="admin"
-              autoComplete="username"
+              placeholder=""
+              autoComplete=""
             />
           </div>
 
@@ -100,7 +97,7 @@ export default function AdminLoginPage() {
               value={credentials.password}
               onChange={(e) => setCredentials({...credentials, password: e.target.value})}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="admin123!@#"
+              placeholder=""
               autoComplete="current-password"
             />
           </div>

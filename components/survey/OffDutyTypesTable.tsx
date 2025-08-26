@@ -63,7 +63,7 @@ export default function OffDutyTypesTable({ offDutyTypes, onChange }: OffDutyTyp
                       type="text"
                       value={offDutyType.name}
                       onChange={(e) => updateOffDutyType(index, 'name', e.target.value)}
-                      placeholder="예: 연차,오프"
+                      placeholder="예: 연차,OFF"
                       className="w-full px-1 md:px-3 py-1.5 md:py-2 border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500 text-xs md:text-sm text-gray-900 h-8 md:h-10"
                       style={{ color: '#111827', WebkitTextFillColor: '#111827' }}
                       autoComplete="off"

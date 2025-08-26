@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useSurvey } from '@/hooks/useSurvey'
 import { useProtectedRoute } from '@/hooks/useProtectedRoute'
+import { supabase } from '@/lib/supabase'
 
 export default function PersonalInfoPage() {
   const [consentPersonalInfo, setConsentPersonalInfo] = useState<boolean | null>(null)
@@ -87,6 +88,29 @@ export default function PersonalInfoPage() {
           alert('휴대폰번호는 010으로 시작해야 합니다.')
           return
         }
+
+        // 개인정보 중복 검증
+        console.log('🔍 개인정보 중복 검증 시작...')
+        const { data: duplicateCheck, error: duplicateError } = await supabase
+          .from('personal_info')
+          .select('id')
+          .eq('name', personalInfo.name)
+          .eq('birth_date', personalInfo.birthDate)
+          .eq('phone_number', personalInfo.phoneNumber)
+        
+        if (duplicateError) {
+          console.error('❌ 중복 검증 실패:', duplicateError)
+          alert('개인정보 확인 중 오류가 발생했습니다. 다시 시도해주세요.')
+          return
+        }
+        
+        if (duplicateCheck && duplicateCheck.length > 0) {
+          console.log('⚠️ 중복된 개인정보 발견:', duplicateCheck)
+          alert('이미 참여한 사람입니다.\n\n중복된 설문 개인정보가 확인되었습니다.\n(동일한 성명, 생년월일, 휴대폰번호)')
+          return
+        }
+        
+        console.log('✅ 중복 검증 통과 - 새로운 참여자')
 
         // 설문 데이터와 개인정보 모두 저장 (직접 값 전달)
         console.log('📝 개인정보 동의 - 개인정보와 설문 데이터 모두 저장')
