@@ -21,7 +21,7 @@ export default function OffDutyTypesTable({ offDutyTypes, onChange }: OffDutyTyp
   const addOffDutyType = () => {
     const newOffDutyType: OffDutyType = {
       id: Date.now().toString(),
-      name: '' // 빈 문자열로 시작하여 "사용자 정의"가 선택된 상태로 표시
+      name: 'Off (휴무)' // 기본값으로 "Off (휴무)" 선택
     }
     onChange([...offDutyTypes, newOffDutyType])
   }

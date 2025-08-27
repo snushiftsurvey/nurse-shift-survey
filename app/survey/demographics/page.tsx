@@ -41,11 +41,11 @@ export default function DemographicsPage() {
   
   // 빈 휴무유형으로 시작 (사용자가 직접 선택) - 필수 항목으로 최소 1개 필요
   const [offDutyTypes, setOffDutyTypes] = useState<OffDutyType[]>(() => {
-    // 필수 항목이므로 항상 빈 칸 1개로 시작
+    // 필수 항목이므로 항상 기본값 1개로 시작
     return [
       {
         id: Date.now().toString(),
-        name: ''
+        name: 'Off (휴무)'
       }
     ]
   })
