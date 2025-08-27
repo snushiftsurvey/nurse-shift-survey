@@ -85,15 +85,7 @@ export default function CompletePage() {
             </p>
           </div>
 
-          <div className="bg-blue-50 rounded-lg p-4 md:p-6 mb-8">
-            <h2 className="text-base md:text-lg font-semibold text-gray-800 mb-3">
-              기프티콘 안내
-            </h2>
-            <div className="text-gray-600 space-y-2 text-sm md:text-base">
-              <p>•개인정보를 제공해주신 분들께는<br/> 모바일 기프티콘을 발송해드립니다.</p>
-              <p>•개인정보는 기프티콘 발송 후 즉시 안전하게 폐기됩니다.</p>
-            </div>
-          </div>
+
 
           <div className="space-y-4">
             <Link 
@@ -103,9 +95,7 @@ export default function CompletePage() {
               홈으로 돌아가기
             </Link>
             
-            <p className="text-xs md:text-sm text-gray-500">
-              문의사항이 있으시면 서울대학교 간호대학 조성현 교수 연구팀으로 연락주세요.
-            </p>
+      
           </div>
         </div>
       </div>

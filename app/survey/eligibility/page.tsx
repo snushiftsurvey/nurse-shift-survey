@@ -51,7 +51,7 @@ const questions = [
   },
   {
     id: 'independentCare',
-    question: '5. 지난 10-11월에 독립적으로 환자를 간호했나요? (예시: 신입간호사 교육기간으로 독립적으로 환자를 간호하지 않은 경우 ‘아니요’에 해당)',
+    question: '5. 지난 10-11월에 독립적으로 환자를 간호했나요? (예: 신입간호사 OT기간 → 아니요)',
     options: [
       { value: 'yes', label: '예', isEligible: true },
       { value: 'no', label: '아니요', isEligible: false },
@@ -104,6 +104,35 @@ export default function EligibilityPage() {
     }
   }
 
+  const handleNext = () => {
+    const currentAnswer = answers[currentQuestion.id]
+    
+    if (!currentAnswer) {
+      alert('질문에 답변해주세요.')
+      return
+    }
+    
+    const selectedOption = currentQuestion.options.find(opt => opt.value === currentAnswer)
+    
+    if (!selectedOption?.isEligible) {
+      alert('연구대상에 해당되지 않아 설문이 종료됩니다. 감사합니다.')
+      router.push('/')
+      return
+    }
+
+    if (isLastQuestion) {
+      // 모든 답변을 surveyData에 저장
+      updateSurveyData({
+        medicalInstitutionType: answers.medicalInstitutionType as 'tertiary' | 'general' | 'hospital' | 'other',
+        medicalInstitutionLocation: answers.medicalInstitutionLocation,
+        department: answers.department,
+      })
+      router.push('/survey/demographics')
+    } else {
+      setCurrentQuestionIndex(currentQuestionIndex + 1)
+    }
+  }
+
   const handlePrevious = () => {
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(currentQuestionIndex - 1)
@@ -135,14 +164,14 @@ export default function EligibilityPage() {
             
             <div className="mb-6">
               <h2 className="text-xl font-semibold text-gray-800 mb-2">
-                {currentQuestion.question.includes('(예시:') 
-                  ? currentQuestion.question.split('(예시:')[0].trim()
+                {currentQuestion.question.includes('(예:') 
+                  ? currentQuestion.question.split('(예:')[0].trim()
                   : currentQuestion.question
                 }
               </h2>
-              {currentQuestion.question.includes('(예시:') && (
+              {currentQuestion.question.includes('(예:') && (
                 <p className="text-sm text-gray-600 leading-relaxed">
-                  (예시: {currentQuestion.question.split('(예시:')[1].replace(')', '').trim()})
+                  (예: {currentQuestion.question.split('(예:')[1].replace(')', '').trim()})
                 </p>
               )}
             </div>
@@ -172,8 +201,17 @@ export default function EligibilityPage() {
               이전
             </button>
             
-            <div className="text-xs sm:text-sm text-gray-500 text-right">
-              선택하시면 자동으로 다음 단계로 진행됩니다
+            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+              <div className="text-xs sm:text-sm text-gray-500 text-center sm:text-right">
+                선택하시면 자동으로 다음 단계로 진행됩니다
+              </div>
+              <button
+                onClick={handleNext}
+                disabled={!answers[currentQuestion.id]}
+                className="px-4 py-2 sm:px-6 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed text-sm sm:text-base flex-shrink-0"
+              >
+                다음
+              </button>
             </div>
           </div>
         </div>

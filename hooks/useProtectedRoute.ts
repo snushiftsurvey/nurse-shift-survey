@@ -21,3 +21,4 @@ export function useProtectedRoute() {
 
   return state.surveyStarted
 }
+

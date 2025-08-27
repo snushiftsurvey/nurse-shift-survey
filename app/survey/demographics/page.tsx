@@ -39,9 +39,9 @@ export default function DemographicsPage() {
     return [newWorkType]
   })
   
-  // 빈 휴무유형으로 시작 (사용자가 직접 입력)
+  // 빈 휴무유형으로 시작 (사용자가 직접 선택) - 필수 항목으로 최소 1개 필요
   const [offDutyTypes, setOffDutyTypes] = useState<OffDutyType[]>(() => {
-    // 세션 저장 안함 - 항상 빈 칸 1개로 시작
+    // 필수 항목이므로 항상 빈 칸 1개로 시작
     return [
       {
         id: Date.now().toString(),
@@ -87,7 +87,7 @@ export default function DemographicsPage() {
       case 'gender':
         return formData.gender && String(formData.gender).trim() !== ''
       case 'age':
-        return formData.age && String(formData.age).trim() !== '' && Number(formData.age) > 0
+        return formData.age && String(formData.age).trim() !== '' && Number(formData.age) >= 20
       case 'hireYear':
         return formData.hireYear && String(formData.hireYear).trim() !== ''
       case 'hireMonth':
@@ -105,20 +105,26 @@ export default function DemographicsPage() {
     return 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
   }
 
+  // 1단계 유효성 검사 별도 함수
+  const isStep1Valid = () => {
+    return (
+      formData.gender && String(formData.gender).trim() !== '' &&
+      formData.age && String(formData.age).trim() !== '' && Number(formData.age) >= 20 &&
+      formData.hireYear && String(formData.hireYear).trim() !== '' &&
+      formData.hireMonth && String(formData.hireMonth).trim() !== ''
+    )
+  }
+
   const canProceedToNext = () => {
     switch (currentStep) {
       case 1:
         // 일반적 특성 3개 필드 모두 필수: 성별, 연령, 입사연월
-        return (
-          formData.gender && String(formData.gender).trim() !== '' &&
-          formData.age && String(formData.age).trim() !== '' && Number(formData.age) > 0 &&
-          formData.hireYear && String(formData.hireYear).trim() !== '' &&
-          formData.hireMonth && String(formData.hireMonth).trim() !== ''
-        )
+        return isStep1Valid()
       case 2:
         return workTypes.length > 0 && 
-               workTypes.every(wt => wt.name.trim() !== '')
-               // 휴무유형은 선택사항이므로 검증에서 제외
+               workTypes.every(wt => wt.name.trim() !== '' && wt.customBreakTime && wt.customBreakTime.trim() !== '') &&
+               offDutyTypes.length > 0 &&
+               offDutyTypes.every(ot => ot.name.trim() !== '')
       case 3:
         // 2개월 모든 날짜에 유효한 근무유형/휴무유형이 선택되었는지 확인
         const october2025Days = Array.from({length: 31}, (_, i) => `2025-10-${(i + 1).toString().padStart(2, '0')}`)
@@ -127,7 +133,7 @@ export default function DemographicsPage() {
         
         // 모든 유효한 ID 목록 생성
         const validIds = [
-          ...workTypes.filter(wt => wt.name.trim() !== '').map(wt => wt.id),
+          ...workTypes.filter(wt => wt.name.trim() !== '' && wt.customBreakTime && wt.customBreakTime.trim() !== '').map(wt => wt.id),
           ...offDutyTypes.filter(ot => ot.name.trim() !== '').map(ot => ot.id)
         ]
         
@@ -147,7 +153,7 @@ export default function DemographicsPage() {
       if (currentStep === 1) {
         const missingFields = []
         if (!formData.gender || String(formData.gender).trim() === '') missingFields.push('성별')
-        if (!formData.age || String(formData.age).trim() === '' || Number(formData.age) <= 0) missingFields.push('연령')
+        if (!formData.age || String(formData.age).trim() === '' || Number(formData.age) < 20) missingFields.push('연령(20세 이상)')
         if (!formData.hireYear || String(formData.hireYear).trim() === '') missingFields.push('입사연도')
         if (!formData.hireMonth || String(formData.hireMonth).trim() === '') missingFields.push('입사월')
         
@@ -157,7 +163,24 @@ export default function DemographicsPage() {
           alert('모든 필수 항목(성별, 연령, 입사연월)을 올바르게 입력해주세요.')
         }
       } else if (currentStep === 2) {
-        alert('모든 근무유형의 이름을 입력해주세요.')
+        const issues = []
+        if (!workTypes.length) {
+          issues.push('최소 1개 이상의 근무조를 추가해주세요.')
+        } else {
+          if (!workTypes.every(wt => wt.name.trim() !== '')) {
+            issues.push('모든 근무조의 이름을 입력해주세요.')
+          }
+          if (!workTypes.every(wt => wt.customBreakTime && wt.customBreakTime.trim() !== '')) {
+            issues.push('모든 근무조의 휴게시간을 선택해주세요.')
+          }
+        }
+        if (!offDutyTypes.length) {
+          issues.push('최소 1개 이상의 휴무를 추가해주세요.')
+        } else if (!offDutyTypes.every(ot => ot.name.trim() !== '')) {
+          issues.push('모든 휴무 항목을 선택해주세요.')
+        }
+        
+        alert(issues.join('\n'))
       } else if (currentStep === 3) {
         // 3단계에서는 더 상세한 검증 메시지 제공
         const october2025Days = Array.from({length: 31}, (_, i) => `2025-10-${(i + 1).toString().padStart(2, '0')}`)
@@ -165,7 +188,7 @@ export default function DemographicsPage() {
         const allDays = [...october2025Days, ...november2025Days]
         
         const validIds = [
-          ...workTypes.filter(wt => wt.name.trim() !== '').map(wt => wt.id),
+          ...workTypes.filter(wt => wt.name.trim() !== '' && wt.customBreakTime && wt.customBreakTime.trim() !== '').map(wt => wt.id),
           ...offDutyTypes.filter(ot => ot.name.trim() !== '').map(ot => ot.id)
         ]
         
@@ -210,7 +233,7 @@ export default function DemographicsPage() {
       const allDays = [...october2025Days, ...november2025Days]
       
       const validIds = [
-        ...workTypes.filter(wt => wt.name.trim() !== '').map(wt => wt.id),
+        ...workTypes.filter(wt => wt.name.trim() !== '' && wt.customBreakTime && wt.customBreakTime.trim() !== '').map(wt => wt.id),
         ...offDutyTypes.filter(ot => ot.name.trim() !== '').map(ot => ot.id)
       ]
       
@@ -252,7 +275,7 @@ export default function DemographicsPage() {
 
   // 빠른 채우기 함수 (개발 테스트용)
   const fillAllDatesWithFirstWorkType = () => {
-    const validWorkTypes = workTypes.filter(wt => wt.name.trim() !== '')
+    const validWorkTypes = workTypes.filter(wt => wt.name.trim() !== '' && wt.customBreakTime && wt.customBreakTime.trim() !== '')
     if (validWorkTypes.length > 0) {
       const firstWorkTypeId = validWorkTypes[0].id
       const october2025Days = Array.from({length: 31}, (_, i) => `2025-10-${(i + 1).toString().padStart(2, '0')}`)
@@ -274,7 +297,7 @@ export default function DemographicsPage() {
         <div className="bg-white rounded-lg shadow-lg p-6 md:p-8">
           <div className="mb-8">
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
-              일반적 특성 및 근무표
+              일반적 특성 및 근무표 입력
             </h1>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div className="bg-blue-600 h-2 rounded-full w-4/6"></div>
@@ -284,23 +307,33 @@ export default function DemographicsPage() {
 
           <div className="mb-6">
             <div className="flex space-x-2 sm:space-x-4 mb-8">
-              {[1, 2, 3].map((step) => (
-                <button
-                  key={step}
-                  onClick={() => setCurrentStep(step)}
-                  className={`px-2 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
-                    step === currentStep
-                      ? 'bg-blue-600 text-white'
-                      : step < currentStep
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-gray-100 text-gray-500'
-                  }`}
-                >
-                  {step === 1 && '일반적 특성'}
-                  {step === 2 && '근무유형 정의'}
-                  {step === 3 && '근무표 입력'}
-                </button>
-              ))}
+              {[1, 2, 3].map((step) => {
+                const isDisabled = step > 1 && !isStep1Valid()
+                return (
+                  <button
+                    key={step}
+                    onClick={() => {
+                      if (!isDisabled) {
+                        setCurrentStep(step)
+                      }
+                    }}
+                    disabled={isDisabled}
+                    className={`px-2 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
+                      step === currentStep
+                        ? 'bg-blue-600 text-white'
+                        : step < currentStep
+                        ? 'bg-green-100 text-green-700'
+                        : isDisabled
+                        ? 'bg-gray-50 text-gray-300 cursor-not-allowed'
+                        : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                    }`}
+                  >
+                    {step === 1 && '일반적 특성'}
+                    {step === 2 && '근무조 정의'}
+                    {step === 3 && '근무표 입력'}
+                  </button>
+                )
+              })}
             </div>
           </div>
 
@@ -313,8 +346,11 @@ export default function DemographicsPage() {
                 
                 <div className="space-y-6">
                   <div>
+                    <h3 className="text-lg font-medium text-gray-800 mb-3">
+                      1. 귀하의 성별은 무엇입니까?
+                    </h3>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      성별 <span className="text-red-500">*</span>
+                      성별
                     </label>
                     <div className="flex space-x-4">
                       <label className="flex items-center text-gray-900">
@@ -342,17 +378,19 @@ export default function DemographicsPage() {
                         남성
                       </label>
                     </div>
-                    {currentStep === 1 && !isFieldValid('gender') && (
-                      <p className="mt-1 text-sm text-red-600">성별을 선택해주세요</p>
-                    )}
+
                   </div>
 
                   <div>
+                    <h3 className="text-lg font-medium text-gray-800 mb-3">
+                      2. 귀하의 연령(만 나이)을 입력해 주십시오.
+                    </h3>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      연령 (만 나이) <span className="text-red-500">*</span>
+                      연령 (만 나이)
                     </label>
                     <input 
                       type="number" 
+                      min="20"
                       value={formData.age}
                       onChange={(e) => handleFormDataChange('age', e.target.value)}
                       className={`w-32 px-3 py-2 border rounded-lg focus:ring-2 text-gray-900 ${getFieldErrorClass('age')}`}
@@ -361,14 +399,18 @@ export default function DemographicsPage() {
                       autoFocus={false}
                       style={{ color: '#111827', WebkitTextFillColor: '#111827' }}
                     />
-                    {currentStep === 1 && !isFieldValid('age') && (
-                      <p className="mt-1 text-sm text-red-600">연령을 입력해주세요</p>
+                    {formData.age && Number(formData.age) < 20 && (
+                      <p className="mt-1 text-sm text-red-600">20세 이상만 입력 가능합니다</p>
                     )}
+
                   </div>
 
                   <div>
+                    <h3 className="text-lg font-medium text-gray-800 mb-3">
+                      3. 귀하의 현재 근무중인 의료기관 입사연월을 입력해 주십시오. (예: 2025년 3월)
+                    </h3>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      입사연월 <span className="text-red-500">*</span>
+                      입사연월
                     </label>
                     <div className="flex space-x-4">
                       <select 
@@ -396,9 +438,7 @@ export default function DemographicsPage() {
                         ))}
                       </select>
                     </div>
-                    {currentStep === 1 && (!isFieldValid('hireYear') || !isFieldValid('hireMonth')) && (
-                      <p className="mt-1 text-sm text-red-600">입사연월을 모두 선택해주세요</p>
-                    )}
+
                   </div>
                 </div>
               </div>
@@ -415,7 +455,7 @@ export default function DemographicsPage() {
                   <div className="mb-8">
                     <h3 className="text-lg font-medium text-gray-700 mb-4 flex items-center">
                       <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                      근무 유형 정의
+                      근무조 정의
                     </h3>
                     <WorkTypesTable workTypes={workTypes} onChange={setWorkTypes} />
                   </div>
@@ -424,7 +464,7 @@ export default function DemographicsPage() {
                   <div>
                     <h3 className="text-lg font-medium text-gray-700 mb-4 flex items-center">
                       <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                      휴무 유형 정의 (선택사항)
+                      휴무 정의
                     </h3>
                     <OffDutyTypesTable offDutyTypes={offDutyTypes} onChange={setOffDutyTypes} />
                   </div>
@@ -450,7 +490,7 @@ export default function DemographicsPage() {
                     const totalDays = allDays.length
                     
                     const validIds = [
-                      ...workTypes.filter(wt => wt.name.trim() !== '').map(wt => wt.id),
+                      ...workTypes.filter(wt => wt.name.trim() !== '' && wt.customBreakTime && wt.customBreakTime.trim() !== '').map(wt => wt.id),
                       ...offDutyTypes.filter(ot => ot.name.trim() !== '').map(ot => ot.id)
                     ]
                     
@@ -502,7 +542,7 @@ export default function DemographicsPage() {
 
                 {/* 개발 테스트용 빠른 채우기 버튼 */}
                 {(() => {
-                  const validWorkTypes = workTypes.filter(wt => wt.name.trim() !== '')
+                  const validWorkTypes = workTypes.filter(wt => wt.name.trim() !== '' && wt.customBreakTime && wt.customBreakTime.trim() !== '')
                   if (validWorkTypes.length > 0) {
                     return (
                       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">

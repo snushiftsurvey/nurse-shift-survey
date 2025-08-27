@@ -77,11 +77,11 @@ export default function ConsentPage() {
               </h2>
             </div>
             
-            {/* 연구참여자용 설명문 이미지 3개 */}
+            {/* 연구참여자용 설명문 이미지 */}
             <div className="space-y-6 mb-8">
               <div className="border border-gray-200 rounded-lg overflow-hidden">
                 <Image
-                  src="/images/info-1.png"
+                  src="/images/info-1.png?20250827"
                   alt="연구참여자용 설명문 1"
                   width={800}
                   height={1000}
@@ -92,7 +92,7 @@ export default function ConsentPage() {
               
               <div className="border border-gray-200 rounded-lg overflow-hidden">
                 <Image
-                  src="/images/info-2.png"
+                  src="/images/info-2.png?20250827"
                   alt="연구참여자용 설명문 2"
                   width={800}
                   height={1000}
@@ -100,20 +100,11 @@ export default function ConsentPage() {
                 />
               </div>
               
-              <div className="border border-gray-200 rounded-lg overflow-hidden">
-                <Image
-                  src="/images/info-3.png"
-                  alt="연구참여자용 설명문 3"
-                  width={800}
-                  height={1000}
-                  className="w-full h-auto"
-                />
-              </div>
               
               {/* 동의서 이미지 */}
               <div className="border border-gray-200 rounded-lg overflow-hidden">
                 <Image
-                  src="/images/agree.png?1"
+                  src="/images/agree.png?2025082700"
                   alt="연구 참여 동의서"
                   width={800}
                   height={1000}

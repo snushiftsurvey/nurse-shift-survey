@@ -52,7 +52,16 @@ export default function WorkTypesTable({ workTypes, onChange }: WorkTypesTablePr
     return times
   }
 
+  const generateBreakTimeOptions = () => {
+    const breakTimes: string[] = []
+    for (let minute = 0; minute <= 90; minute += 10) {
+      breakTimes.push(`${minute}분`)
+    }
+    return breakTimes
+  }
+
   const timeOptions = generateTimeOptions()
+  const breakTimeOptions = generateBreakTimeOptions()
 
   return (
     <div className="space-y-2 md:space-y-4">
@@ -73,7 +82,7 @@ export default function WorkTypesTable({ workTypes, onChange }: WorkTypesTablePr
             </div>
             <div className="col-span-3 md:col-span-3">
               <span className="block">휴게</span>
-              <span className="text-xs text-gray-500 hidden md:block">보장된 휴게시간 (직접 입력)</span>
+              <span className="text-xs text-gray-500 hidden md:block">보장된 휴게시간 (0~90분, 10분 단위)</span>
             </div>
             <div className="col-span-1 md:col-span-1 text-center">
               <span className="hidden md:inline">삭제</span>
@@ -85,7 +94,7 @@ export default function WorkTypesTable({ workTypes, onChange }: WorkTypesTablePr
         <div className="divide-y divide-gray-200">
           {workTypes.length === 0 ? (
             <div className="px-2 md:px-4 py-6 md:py-8 text-center text-gray-500">
-              근무유형을 추가해주세요
+              근무조를 추가해주세요
             </div>
           ) : (
             workTypes.map((workType, index) => (
@@ -97,7 +106,7 @@ export default function WorkTypesTable({ workTypes, onChange }: WorkTypesTablePr
                       type="text"
                       value={workType.name}
                       onChange={(e) => updateWorkType(index, 'name', e.target.value)}
-                      placeholder="예: 데이, 나이트"
+                      placeholder="예:D,데이,교육"
                       className="w-full px-1 md:px-3 py-1.5 md:py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs md:text-sm text-gray-900 h-8 md:h-10"
                       style={{ color: '#111827', WebkitTextFillColor: '#111827' }}
                       autoComplete="off"
@@ -136,15 +145,18 @@ export default function WorkTypesTable({ workTypes, onChange }: WorkTypesTablePr
 
                   {/* 휴게시간 */}
                   <div className="col-span-3 md:col-span-3">
-                    <input
-                      type="text"
+                    <select
                       value={workType.customBreakTime || ''}
                       onChange={(e) => updateWorkType(index, 'customBreakTime', e.target.value)}
-                      placeholder="예:30분"
-                      className="w-full px-1 md:px-3 py-1.5 md:py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs md:text-sm text-gray-900 h-8 md:h-10"
+                      className="w-full px-0 md:px-2 py-1.5 md:py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs md:text-sm text-gray-900 h-8 md:h-10"
                       style={{ color: '#111827', WebkitTextFillColor: '#111827' }}
                       autoComplete="off"
-                    />
+                    >
+                      <option value="">선택하세요</option>
+                      {breakTimeOptions.map(time => (
+                        <option key={time} value={time}>{time}</option>
+                      ))}
+                    </select>
                   </div>
 
                   {/* 삭제 버튼 */}
@@ -169,13 +181,13 @@ export default function WorkTypesTable({ workTypes, onChange }: WorkTypesTablePr
         className="w-full flex items-center justify-center gap-2 px-2 md:px-4 py-2 md:py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors"
       >
         <Plus className="w-4 h-4 md:w-5 md:h-5" />
-        근무 유형 추가
+        근무조 추가
       </button>
 
       {workTypes.length === 0 && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-2 md:p-4">
-          <p className="text-yellow-800 text-xs md:text-sm">
-            ⚠️ 최소 1개 이상의 근무유형을 입력해야 다음 단계로 진행할 수 있습니다.
+                      <p className="text-yellow-800 text-xs md:text-sm">
+            ⚠️ 최소 1개 이상의 근무조를 입력해야 다음 단계로 진행할 수 있습니다.
           </p>
         </div>
       )}

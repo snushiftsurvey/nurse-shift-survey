@@ -54,3 +54,4 @@ try {
   console.error('❌ Error setting up git hooks:', error.message);
   process.exit(1);
 }
+
