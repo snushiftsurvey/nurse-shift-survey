@@ -70,23 +70,22 @@ export default function WorkTypesTable({ workTypes, onChange }: WorkTypesTablePr
           <div className="grid grid-cols-12 gap-0.5 md:gap-4 text-xs md:text-sm font-medium text-gray-700">
             <div className="col-span-4 md:col-span-4">
               <span className="block md:inline">근무명칭</span>
-              <span className="text-xs text-gray-500 hidden md:block">(한글/영어 모두 가능)</span>
+              <span className="text-[10px] md:text-xs text-gray-500 block">(한글/영어 모두 가능)</span>
             </div>
             <div className="col-span-2 md:col-span-2">
-              <span className="block">시작</span>
-              <span className="text-xs text-gray-500 hidden md:inline">시각</span>
+              <span className="block">정규 시작</span>
+              <span className="text-[10px] md:text-xs text-gray-500">시각</span>
             </div>
             <div className="col-span-2 md:col-span-2">
-              <span className="block">종료</span>
-              <span className="text-xs text-gray-500 hidden md:inline">시각</span>
+              <span className="block">정규 종료</span>
+              <span className="text-[10px] md:text-xs text-gray-500">시각</span>
             </div>
             <div className="col-span-3 md:col-span-3">
               <span className="block">휴게</span>
-              <span className="text-xs text-gray-500 hidden md:block">보장된 휴게시간 (0~90분, 10분 단위)</span>
+              <span className="text-[9px] md:text-xs text-gray-500 block leading-tight">정규 근무시간 중 보장된 휴게시간</span>
             </div>
             <div className="col-span-1 md:col-span-1 text-center">
-              <span className="hidden md:inline">삭제</span>
-              <span className="md:hidden">×</span>
+              <span className="text-[10px] md:text-sm">삭제</span>
             </div>
           </div>
         </div>
