@@ -448,7 +448,7 @@ export default function DemographicsPage() {
               <div className="space-y-8">
                 <div>
                   <h2 className="text-xl font-semibold text-gray-800 mb-6">
-                    근무/휴무 유형 정의
+                    4.근무 및 휴무 입력
                   </h2>
                   
                   {/* 근무유형 정의 섹션 */}
@@ -476,9 +476,9 @@ export default function DemographicsPage() {
               <div className="space-y-6">
                 <div>
                   <h2 className="text-xl font-semibold text-gray-800 mb-2">
-                    근무표 입력
+                    5.근무표 입력
                   </h2>
-                  <p className="text-gray-600 mb-4">
+                  <p className="text-xs text-gray-600 mb-4">
                     앞서 정의한 근무유형을 바탕으로 2개월간의 근무표를 입력해주세요.
                   </p>
                   

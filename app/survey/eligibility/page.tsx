@@ -193,18 +193,21 @@ export default function EligibilityPage() {
             </div>
           </div>
 
-          <div className="flex flex-row justify-between items-center gap-4">
-            <button
-              onClick={handlePrevious}
-              className="px-4 py-2 sm:px-6 sm:py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm sm:text-base flex-shrink-0"
-            >
-              이전
-            </button>
+          <div className="space-y-3">
+            {/* 안내 텍스트 */}
+            <div className="text-xs sm:text-sm text-gray-500 text-center">
+              선택하시면 자동으로 다음 단계로 진행됩니다
+            </div>
             
-            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
-              <div className="text-xs sm:text-sm text-gray-500 text-center sm:text-right">
-                선택하시면 자동으로 다음 단계로 진행됩니다
-              </div>
+            {/* 버튼들 */}
+            <div className="flex flex-row justify-between items-center gap-4">
+              <button
+                onClick={handlePrevious}
+                className="px-4 py-2 sm:px-6 sm:py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm sm:text-base flex-shrink-0"
+              >
+                이전
+              </button>
+              
               <button
                 onClick={handleNext}
                 disabled={!answers[currentQuestion.id]}
