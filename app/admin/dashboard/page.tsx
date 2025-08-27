@@ -94,11 +94,14 @@ export default function AdminDashboardPage() {
   const getDepartmentLabel = (department: string) => {
     switch (department) {
       case 'general-ward': return '일반병동'
+      case 'icu': return '중환자실'
       case 'intensive-care-unit': return '중환자실'
+      case 'integrated-care-ward': return '간호·간병통합서비스 병동'
+      case 'emergency': return '응급실'
       case 'emergency-room': return '응급실'
       case 'operating-room': return '수술실'
       case 'outpatient-clinic': return '외래'
-      case 'integrated-care-ward': return '통합병동'
+      case 'other': return '기타'
       default: return department
     }
   }
@@ -802,7 +805,7 @@ export default function AdminDashboardPage() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-8 lg:px-12 py-8">
+      <main className="max-w-7xl mx-auto px-6 lg:px-6 py-6">
         {/* 에러 메시지 */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
@@ -929,18 +932,18 @@ export default function AdminDashboardPage() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      <div className="flex items-center">
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
+                      <div className="flex items-center whitespace-nowrap">
                         <input
                           type="checkbox"
                           checked={surveys.length > 0 && selectedSurveyIds.length === surveys.length}
                           onChange={(e) => handleSelectAll(e.target.checked)}
-                          className="mr-2 h-5 w-5 text-blue-600 border-2 border-gray-400 rounded focus:ring-blue-500 focus:ring-2"
+                          className="mr-1 h-4 w-4 text-blue-600 border-2 border-gray-400 rounded focus:ring-blue-500 focus:ring-2"
                         />
                         선택
                       </div>
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       <button 
                         onClick={() => handleSort('hire_date')}
                         className={`flex items-center space-x-1 hover:text-gray-700 transition-colors ${
@@ -951,7 +954,7 @@ export default function AdminDashboardPage() {
                         <SortIcon field="hire_date" />
                       </button>
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       <button 
                         onClick={() => handleSort('age')}
                         className={`flex items-center space-x-1 hover:text-gray-700 transition-colors ${
@@ -962,7 +965,7 @@ export default function AdminDashboardPage() {
                         <SortIcon field="age" />
                       </button>
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       <button 
                         onClick={() => handleSort('medical_institution_type')}
                         className={`flex items-center space-x-1 hover:text-gray-700 transition-colors ${
@@ -973,7 +976,7 @@ export default function AdminDashboardPage() {
                         <SortIcon field="medical_institution_type" />
                       </button>
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       <button 
                         onClick={() => handleSort('department')}
                         className={`flex items-center space-x-1 hover:text-gray-700 transition-colors ${
@@ -984,7 +987,7 @@ export default function AdminDashboardPage() {
                         <SortIcon field="department" />
                       </button>
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       <button 
                         onClick={() => handleSort('medical_institution_location')}
                         className={`flex items-center space-x-1 hover:text-gray-700 transition-colors ${
@@ -995,10 +998,10 @@ export default function AdminDashboardPage() {
                         <SortIcon field="medical_institution_location" />
                       </button>
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       개인정보
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       <button 
                         onClick={() => handleSort('created_at')}
                         className={`flex items-center space-x-1 hover:text-gray-700 transition-colors ${
@@ -1009,7 +1012,7 @@ export default function AdminDashboardPage() {
                         <SortIcon field="created_at" />
                       </button>
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       액션
                     </th>
                   </tr>
@@ -1017,12 +1020,12 @@ export default function AdminDashboardPage() {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {sortedSurveys.map((survey) => (
                     <tr key={survey.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 w-20">
                         <input
                           type="checkbox"
                           checked={selectedSurveyIds.includes(survey.id)}
                           onChange={(e) => handleSelectSurvey(survey.id, e.target.checked)}
-                          className="h-5 w-5 text-blue-600 border-2 border-gray-400 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
+                          className="h-4 w-4 text-blue-600 border-2 border-gray-400 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
                         />
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">

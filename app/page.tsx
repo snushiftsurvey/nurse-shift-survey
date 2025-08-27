@@ -88,10 +88,10 @@ export default function HomePage() {
               className="w-20 h-20 md:w-32 md:h-32 lg:w-32 lg:h-32 flex-shrink-0"
             />
             <div className="bg-blue-50 rounded-lg p-2 md:p-6 flex-1">
-              <h2 className="text-sm md:text-lg font-semibold text-gray-800 mb-2 md:mb-4">
+              <h2 className="text-xs md:text-lg font-semibold text-gray-800 mb-2 md:mb-4">
                 연구대상: 아래 조건을 충족하는 간호사
               </h2>
-              <ul className="text-gray-500 space-y-2 md:space-y-3 text-left text-[13px] md:text-base">
+              <ul className="text-gray-500 space-y-2 md:space-y-3 text-left text-[11px] md:text-base">
                 <li className="pb-1">• 상급종합병원과 종합병원에서 <br className="md:hidden"/>2025년 10-11월에 교대근무한 일반간호사</li>
                 <li className="pb-1">• 일반병동, 간호간병통합서비스 병동, 중환자실 대상<br className="md:hidden"/>
                   <span >(응급실, 수술실, 기타 부서 제외)</span></li>
