@@ -46,3 +46,4 @@ CREATE POLICY "Allow authenticated read" ON personal_info
   FOR SELECT TO authenticated
   USING (true);
 
+

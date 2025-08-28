@@ -39,16 +39,8 @@ export default function DemographicsPage() {
     return [newWorkType]
   })
   
-  // 빈 휴무유형으로 시작 (사용자가 직접 선택) - 필수 항목으로 최소 1개 필요
-  const [offDutyTypes, setOffDutyTypes] = useState<OffDutyType[]>(() => {
-    // 필수 항목이므로 항상 기본값 1개로 시작
-    return [
-      {
-        id: Date.now().toString(),
-        name: 'Off (휴무)'
-      }
-    ]
-  })
+  // 휴무유형은 OffDutyTypesTable 컴포넌트에서 자동으로 기본 5개를 생성
+  const [offDutyTypes, setOffDutyTypes] = useState<OffDutyType[]>([])
   
   const [shiftData, setShiftData] = useState<ShiftData>(() => {
     if (state.surveyData.shiftData && Object.keys(state.surveyData.shiftData).length > 0) {
@@ -121,20 +113,23 @@ export default function DemographicsPage() {
         // 일반적 특성 3개 필드 모두 필수: 성별, 연령, 입사연월
         return isStep1Valid()
       case 2:
+        // 사용자 정의 휴무만 검증 (기본 휴무는 자동 생성되므로 제외)
+        const customOffDutyTypes = offDutyTypes.filter(ot => !ot.isDefault)
         return workTypes.length > 0 && 
                workTypes.every(wt => wt.name.trim() !== '' && wt.customBreakTime && wt.customBreakTime.trim() !== '') &&
                offDutyTypes.length > 0 &&
-               offDutyTypes.every(ot => ot.name.trim() !== '')
+               customOffDutyTypes.every(ot => ot.name.trim() !== '')
       case 3:
         // 2개월 모든 날짜에 유효한 근무유형/휴무유형이 선택되었는지 확인
         const october2025Days = Array.from({length: 31}, (_, i) => `2025-10-${(i + 1).toString().padStart(2, '0')}`)
         const november2025Days = Array.from({length: 30}, (_, i) => `2025-11-${(i + 1).toString().padStart(2, '0')}`)
         const allDays = [...october2025Days, ...november2025Days]
         
-        // 모든 유효한 ID 목록 생성
+        // 모든 유효한 ID 목록 생성 (사용자 정의 휴무만 검증)
+        const customOffDutyTypesForStep3 = offDutyTypes.filter(ot => !ot.isDefault)
         const validIds = [
           ...workTypes.filter(wt => wt.name.trim() !== '' && wt.customBreakTime && wt.customBreakTime.trim() !== '').map(wt => wt.id),
-          ...offDutyTypes.filter(ot => ot.name.trim() !== '').map(ot => ot.id)
+          ...offDutyTypes.filter(ot => ot.isDefault || ot.name.trim() !== '').map(ot => ot.id) // 기본 휴무는 항상 유효, 사용자 정의는 이름이 있어야 유효
         ]
         
         // 모든 날짜에 유효한 ID가 선택되었는지 확인
@@ -176,8 +171,12 @@ export default function DemographicsPage() {
         }
         if (!offDutyTypes.length) {
           issues.push('최소 1개 이상의 휴무를 추가해주세요.')
-        } else if (!offDutyTypes.every(ot => ot.name.trim() !== '')) {
-          issues.push('모든 휴무 항목을 선택해주세요.')
+        } else {
+          // 사용자 정의 휴무만 검증 (기본 휴무는 자동 생성되므로 제외)
+          const customOffDutyTypesForValidation = offDutyTypes.filter(ot => !ot.isDefault)
+          if (!customOffDutyTypesForValidation.every(ot => ot.name.trim() !== '')) {
+            issues.push('사용자 정의 휴무의 이름을 모두 입력해주세요.')
+          }
         }
         
         alert(issues.join('\n'))
@@ -189,7 +188,7 @@ export default function DemographicsPage() {
         
         const validIds = [
           ...workTypes.filter(wt => wt.name.trim() !== '' && wt.customBreakTime && wt.customBreakTime.trim() !== '').map(wt => wt.id),
-          ...offDutyTypes.filter(ot => ot.name.trim() !== '').map(ot => ot.id)
+          ...offDutyTypes.filter(ot => ot.isDefault || ot.name.trim() !== '').map(ot => ot.id) // 기본 휴무는 항상 유효, 사용자 정의는 이름이 있어야 유효
         ]
         
         const incompleteDays = allDays.filter(date => {
@@ -234,7 +233,7 @@ export default function DemographicsPage() {
       
       const validIds = [
         ...workTypes.filter(wt => wt.name.trim() !== '' && wt.customBreakTime && wt.customBreakTime.trim() !== '').map(wt => wt.id),
-        ...offDutyTypes.filter(ot => ot.name.trim() !== '').map(ot => ot.id)
+        ...offDutyTypes.filter(ot => ot.isDefault || ot.name.trim() !== '').map(ot => ot.id) // 기본 휴무는 항상 유효, 사용자 정의는 이름이 있어야 유효
       ]
       
       const completedDays = allDays.filter(date => {
@@ -491,7 +490,7 @@ export default function DemographicsPage() {
                     
                     const validIds = [
                       ...workTypes.filter(wt => wt.name.trim() !== '' && wt.customBreakTime && wt.customBreakTime.trim() !== '').map(wt => wt.id),
-                      ...offDutyTypes.filter(ot => ot.name.trim() !== '').map(ot => ot.id)
+                      ...offDutyTypes.filter(ot => ot.isDefault || ot.name.trim() !== '').map(ot => ot.id) // 기본 휴무는 항상 유효, 사용자 정의는 이름이 있어야 유효
                     ]
                     
                     const completedDays = allDays.filter(date => {

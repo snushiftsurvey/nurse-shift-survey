@@ -13,6 +13,7 @@ export interface OffDutyType {
   id: string
   name: string
   description?: string // 휴무 설명 (선택사항)
+  isDefault?: boolean // 기본 휴무 여부
 }
 
 export interface ShiftData {
