@@ -305,14 +305,19 @@ export default function AdminDashboardPage() {
         '성명', '생년월일', '휴대폰번호'
       ]
       
-      // 근무유형 정의 헤더 (최대 4개 근무유형)
+      // 근무유형 정의 헤더 (동적 생성)
+      const maxWorkTypes = Math.max(...data.map(survey => (survey.work_types || []).length), 1) // 최소 1개
       const workTypeHeaders = []
-      for (let i = 1; i <= 4; i++) {
+      for (let i = 1; i <= maxWorkTypes; i++) {
         workTypeHeaders.push(`근무${i}`, `근무${i}시작`, `근무${i}종료`, `근무${i}휴게`)
       }
       
-      // 휴무유형 정의 헤더
-      const offDutyHeaders = ['휴무1', '휴무2']
+      // 휴무유형 정의 헤더 (동적 생성)
+      const maxOffDutyTypes = Math.max(...data.map(survey => (survey.off_duty_types || []).length), 5) // 최소 5개 (기본 휴무)
+      const offDutyHeaders = []
+      for (let i = 1; i <= maxOffDutyTypes; i++) {
+        offDutyHeaders.push(`휴무${i}`)
+      }
       
       // 일별 근무 헤더 추가 (2025-10-01, 2025-10-02, ..., 2025-11-30)
       const dateHeaders = allDates.map(date => date)
@@ -377,10 +382,10 @@ export default function AdminDashboardPage() {
           `="${survey.personal_info?.[0]?.phone_number || ''}"`
         ]
         
-        // 근무유형 정의 데이터 (최대 4개)
+        // 근무유형 정의 데이터 (동적 개수)
         const workTypes = survey.work_types || []
         const workTypeData = []
-        for (let i = 0; i < 4; i++) {
+        for (let i = 0; i < maxWorkTypes; i++) {
           const workType = workTypes[i]
           if (workType) {
             workTypeData.push(
@@ -394,10 +399,10 @@ export default function AdminDashboardPage() {
           }
         }
         
-        // 휴무유형 정의 데이터 (최대 2개)
+        // 휴무유형 정의 데이터 (동적 개수)
         const offDutyTypes = survey.off_duty_types || []
         const offDutyData = []
-        for (let i = 0; i < 2; i++) {
+        for (let i = 0; i < maxOffDutyTypes; i++) {
           const offDutyType = offDutyTypes[i]
           if (offDutyType) {
             offDutyData.push(escapeCsvField(offDutyType.name || ''))
