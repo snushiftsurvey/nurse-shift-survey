@@ -970,7 +970,7 @@ export default function AdminDashboardPage() {
               <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-orange-600 to-orange-700 transform rotate-45 -translate-x-5 -translate-y-5 md:-translate-x-6 md:-translate-y-6 shadow-lg"></div>
             </div>
             <h3 className="text-sm font-semibold text-gray-900 mb-2">
-              통합병동
+            간호·간병통합서비스 병동
             </h3>
             {loading ? (
               <div className="h-9 bg-gray-200 rounded animate-pulse"></div>
