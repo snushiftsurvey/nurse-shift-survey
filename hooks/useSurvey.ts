@@ -35,6 +35,11 @@ export function useSurvey() {
       dispatch({ type: 'SET_LOADING', payload: true })
       dispatch({ type: 'SET_ERROR', payload: null })
 
+      // 최종 제출 전 부서별 응답자 수 제한 재확인
+      if (state.surveyData.department) {
+        await checkDepartmentLimitsInSubmit(state.surveyData.department)
+      }
+
       // overrides가 있으면 우선 사용, 없으면 state에서 가져오기
       const finalConsentPersonalInfo = overrides?.consentPersonalInfo ?? state.surveyData.consentPersonalInfo
       const finalPersonalInfo = overrides?.personalInfo ?? state.personalInfo
@@ -43,6 +48,11 @@ export function useSurvey() {
       console.log('  - finalConsentPersonalInfo:', finalConsentPersonalInfo)
       console.log('  - finalPersonalInfo:', finalPersonalInfo)
       console.log('  - surveyData:', state.surveyData)
+
+      // 최종 제출 시 부서별 제한 확인
+      if (state.surveyData.department) {
+        await checkDepartmentLimitsInSubmit(state.surveyData.department)
+      }
 
       // 설문 데이터 저장
       const surveyInsertData = {
@@ -59,7 +69,7 @@ export function useSurvey() {
         consent_personal_info: finalConsentPersonalInfo || false,
       }
 
-      console.log('📤 surveys 테이블에 저장할 데이터:', surveyInsertData)
+      console.log(' surveys 테이블에 저장할 데이터:', surveyInsertData)
 
       const { data: surveyResponse, error: surveyError } = await supabasePublic
         .from('surveys')
@@ -68,14 +78,14 @@ export function useSurvey() {
         .single()
 
       if (surveyError) {
-        console.error('❌ surveys 테이블 저장 실패:', surveyError)
+        console.error(' surveys 테이블 저장 실패:', surveyError)
         throw surveyError
       }
 
-      console.log('✅ surveys 테이블 저장 성공:', surveyResponse)
+      console.log(' surveys 테이블 저장 성공:', surveyResponse)
 
       if (finalConsentPersonalInfo && finalPersonalInfo.name) {
-        console.log('✅ 개인정보 저장 조건 충족 - DB 저장 시작')
+        console.log(' 개인정보 저장 조건 충족 - DB 저장 시작')
         
         const personalInfoData = {
           survey_id: surveyResponse.id,
@@ -84,7 +94,7 @@ export function useSurvey() {
           phone_number: finalPersonalInfo.phoneNumber,
         }
         
-        console.log('📤 저장할 개인정보 데이터:', personalInfoData)
+        console.log('저장할 개인정보 데이터:', personalInfoData)
         
         const { data: personalResult, error: personalError } = await supabasePublic
           .from('personal_info')
@@ -92,10 +102,10 @@ export function useSurvey() {
           .select()
 
         if (personalError) {
-          console.error('❌ 개인정보 저장 실패:', personalError)
+          console.error(' 개인정보 저장 실패:', personalError)
           throw personalError
         } else {
-          console.log('✅ 개인정보 저장 성공:', personalResult)
+          console.log(' 개인정보 저장 성공:', personalResult)
         }
       } else {
         console.warn('⚠️ 개인정보 저장 조건 불충족')
@@ -116,6 +126,48 @@ export function useSurvey() {
       dispatch({ type: 'SET_LOADING', payload: false })
     }
   }, [dispatch, state])
+
+  // 최종 제출 시 부서별 제한 재확인
+  const checkDepartmentLimitsInSubmit = async (selectedDepartment: string) => {
+    try {
+      const departmentLimitMap: { [key: string]: string } = {
+        'general-ward': 'general_ward_limit',
+        'integrated-care-ward': 'integrated_care_ward_limit',
+        'icu': 'icu_limit'
+      }
+
+      const limitName = departmentLimitMap[selectedDepartment]
+      if (!limitName) return
+
+      const { data: limitData } = await supabasePublic
+        .from('survey_limits')
+        .select('setting_value')
+        .eq('setting_name', limitName)
+        .single()
+
+      const deptLimit = limitData?.setting_value
+      if (!deptLimit) return
+
+      const { count: deptCount } = await supabasePublic
+        .from('surveys')
+        .select('*', { count: 'exact', head: true })
+        .eq('department', selectedDepartment)
+
+      if (deptCount && deptCount >= deptLimit) {
+        const deptName = selectedDepartment === 'general-ward' ? '일반병동' :
+          selectedDepartment === 'integrated-care-ward' ? '간호·간병통합서비스 병동' :
+          selectedDepartment === 'icu' ? '중환자실' : selectedDepartment
+        
+        throw new Error(`죄송합니다. ${deptName} 응답자 수가 초과되어 설문을 제출할 수 없습니다.`)
+      }
+
+      console.log(`📊 최종 제출 허용: ${selectedDepartment} (${deptCount}/${deptLimit})`)
+      
+    } catch (error) {
+      console.error('❌ 최종 제출 시 부서별 제한 확인 중 오류:', error)
+      throw error
+    }
+  }
 
   return {
     state,

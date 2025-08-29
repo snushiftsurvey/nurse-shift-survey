@@ -13,39 +13,40 @@ export default function HomePage() {
   const { forceClearAll, startSurvey } = useSurvey()
 
   const handleStartSurvey = async () => {
-    console.log('🔒 설문 시작 - 설문 수 제한 확인')
+    console.log('🔒 설문 시작 - 전체 응답자 수만 확인')
     
     try {
       setIsNavigating(true)
       
-      // 1. 설문 응답 수 제한 확인 (350개)
-      const { count, error } = await supabasePublic
+      // 전체 응답자 수 제한만 확인
+      const { data: totalLimitData } = await supabasePublic
+        .from('survey_limits')
+        .select('setting_value')
+        .eq('setting_name', 'total_limit')
+        .single()
+      
+      const totalLimit = totalLimitData?.setting_value || 350
+
+      const { count: totalCount } = await supabasePublic
         .from('surveys')
         .select('*', { count: 'exact', head: true })
       
-      if (error) {
-        console.error('❌ 설문 수 확인 실패:', error)
-        alert('설문 시작 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.')
+      if (totalCount && totalCount >= totalLimit) {
+        alert('가능한 설문응답이 종료되었습니다\n(사유: 전체 응답자 수 초과)')
         setIsNavigating(false)
         return
       }
       
-      if (count && count >= 350) {
-        alert('가능한 설문응답이 종료되었습니다\n(사유: 응답자 수 초과)')
-        setIsNavigating(false)
-        return
-      }
-      
-      console.log(`📊 현재 설문 수: ${count}/350 - 설문 시작 가능`)
+      console.log(`📊 전체 제한 확인 통과: ${totalCount}/${totalLimit}`)
       console.log('🔒 설문 시작 - 모든 데이터 완전 초기화')
       
-      // 2. 강제 전체 초기화
+      // 강제 전체 초기화
       forceClearAll()
       
-      // 3. 설문 시작 상태 설정
+      // 설문 시작 상태 설정
       startSurvey()
       
-      // 4. 페이지 이동
+      // 페이지 이동
       setTimeout(() => {
         router.push('/survey')
       }, 300)

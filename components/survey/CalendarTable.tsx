@@ -53,17 +53,17 @@ export default function CalendarTable({ workTypes, offDutyTypes, shiftData, onCh
       {/* 기본 선택 옵션 */}
       <option value="">선택</option>
       
-      {/* 휴무유형들 */}
-      {validOffDutyTypes.map(offDutyType => (
-        <option key={offDutyType.id} value={offDutyType.id}>
-          {offDutyType.name}
-        </option>
-      ))}
-      
       {/* 근무유형들 */}
       {validWorkTypes.map(workType => (
         <option key={workType.id} value={workType.id}>
           {getWorkTypeDisplayText(workType)}
+        </option>
+      ))}
+      
+      {/* 휴무유형들 */}
+      {validOffDutyTypes.map(offDutyType => (
+        <option key={offDutyType.id} value={offDutyType.id}>
+          {offDutyType.name}
         </option>
       ))}
     </>

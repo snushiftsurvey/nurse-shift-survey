@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { createClient } from '@supabase/supabase-js'
 import WorkScheduleViewer from '@/components/admin/WorkScheduleViewer'
+import SurveyLimitsModal from '@/components/admin/SurveyLimitsModal'
 
 interface SurveyData {
   id: string
@@ -43,6 +44,9 @@ export default function AdminDashboardPage() {
   const [showScheduleModal, setShowScheduleModal] = useState(false)
   const [scheduleLoading, setScheduleLoading] = useState(false)
   
+  // 응답자 수 제한 모달 상태
+  const [showLimitsModal, setShowLimitsModal] = useState(false)
+  
 
   
   // 삭제 기능 관련 상태
@@ -57,6 +61,10 @@ export default function AdminDashboardPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [authLoading, setAuthLoading] = useState(true)
   const [currentUser, setCurrentUser] = useState<any>(null)
+
+  // 부서별 통계 상태
+  const [departmentStats, setDepartmentStats] = useState<{[key: string]: {current: number, limit: number}}>({})
+  const [limitsData, setLimitsData] = useState<any[]>([])  
   
   // 정렬 상태 관리
   const [sortField, setSortField] = useState<string>('created_at')
@@ -95,12 +103,9 @@ export default function AdminDashboardPage() {
     switch (department) {
       case 'general-ward': return '일반병동'
       case 'icu': return '중환자실'
-      case 'intensive-care-unit': return '중환자실'
       case 'integrated-care-ward': return '간호·간병통합서비스 병동'
       case 'emergency': return '응급실'
-      case 'emergency-room': return '응급실'
       case 'operating-room': return '수술실'
-      case 'outpatient-clinic': return '외래'
       case 'other': return '기타'
       default: return department
     }
@@ -206,6 +211,58 @@ export default function AdminDashboardPage() {
 
 
 
+  // 부서별 통계 및 제한 조회
+  const fetchDepartmentStats = async () => {
+    try {
+      // 1. 제한 설정 조회
+      const { data: limits, error: limitsError } = await supabase
+        .from('survey_limits')
+        .select('*')
+      
+      if (limitsError) {
+        console.error('❌ 응답자 수 제한 설정 조회 실패:', limitsError)
+        return
+      }
+
+      setLimitsData(limits || [])
+
+      // 2. 부서별 현재 응답 수 조회
+      const departments = [
+        { key: 'general-ward', name: '일반병동' },
+        { key: 'integrated-care-ward', name: '간호·간병통합서비스 병동' },
+        { key: 'icu', name: '중환자실' }
+      ]
+
+      const stats: {[key: string]: {current: number, limit: number}} = {}
+
+      for (const dept of departments) {
+        // 현재 응답 수 조회
+        const { count: currentCount, error: countError } = await supabase
+          .from('surveys')
+          .select('*', { count: 'exact', head: true })
+          .eq('department', dept.key)
+        
+        if (countError) {
+          console.error(`❌ ${dept.key} 응답 수 조회 실패:`, countError)
+          continue
+        }
+
+        // 제한 값 찾기
+        const limitSetting = limits?.find(l => l.setting_name === `${dept.key.replace('-', '_')}_limit`)
+        const limit = limitSetting?.setting_value || 0
+
+        stats[dept.key] = {
+          current: currentCount || 0,
+          limit: limit
+        }
+      }
+
+      setDepartmentStats(stats)
+    } catch (err) {
+      console.error('부서별 통계 조회 실패:', err)
+    }
+  }
+
   // 설문 데이터 조회 (authenticated 사용자 전용)
   const fetchSurveys = async () => {
     try {
@@ -252,6 +309,9 @@ export default function AdminDashboardPage() {
 
       console.log(`✅ UI 설정 완료:`, surveysWithPersonalInfo.length, '개')
       setSurveys(surveysWithPersonalInfo)
+
+      // 부서별 통계도 함께 조회
+      await fetchDepartmentStats()
       
     } catch (err) {
       console.error('설문 데이터 조회 실패:', err)
@@ -747,6 +807,18 @@ export default function AdminDashboardPage() {
                 선택됨: <span className="font-bold ml-1">{selectedSurveyIds.length}</span>개
               </div>
               
+              {/* 응답자 수 제한 설정 버튼 */}
+              <button
+                onClick={() => setShowLimitsModal(true)}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                응답자 수 설정
+              </button>
+              
               {/* 삭제 버튼 (선택된 항목이 있을 때만) */}
               {selectedSurveyIds.length > 0 && (
                 <button
@@ -830,58 +902,129 @@ export default function AdminDashboardPage() {
         )}
 
         {/* 통계 카드 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6 relative overflow-hidden">
-            {/* 파랑색 책갈피 */}
-            <div className="absolute top-0 left-0 w-12 h-12 md:w-14 md:h-14">
-              <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-600 to-blue-700 transform rotate-45 -translate-x-6 -translate-y-6 md:-translate-x-7 md:-translate-y-7 shadow-lg"></div>
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6 mb-8">
+          {/* 총 응답 수 */}
+          <div className="bg-white rounded-lg shadow p-4 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-10 h-10 md:w-12 md:h-12">
+              <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-600 to-blue-700 transform rotate-45 -translate-x-5 -translate-y-5 md:-translate-x-6 md:-translate-y-6 shadow-lg"></div>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <h3 className="text-sm font-semibold text-gray-900 mb-2">
               총 응답 수
             </h3>
             {loading ? (
               <div className="h-9 bg-gray-200 rounded animate-pulse"></div>
             ) : (
-              <p className="text-3xl font-bold text-blue-600">
-                {surveys.length}
-              </p>
+              <div>
+                <p className="text-2xl font-bold text-blue-600">
+                  {surveys.length}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  / {limitsData.find(l => l.setting_name === 'total_limit')?.setting_value || 350}
+                </p>
+              </div>
             )}
           </div>
           
-          <div className="bg-white rounded-lg shadow p-6 relative overflow-hidden">
-            {/* 파랑색 책갈피 */}
-            <div className="absolute top-0 left-0 w-12 h-12 md:w-14 md:h-14">
-              <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-600 to-blue-700 transform rotate-45 -translate-x-6 -translate-y-6 md:-translate-x-7 md:-translate-y-7 shadow-lg"></div>
+          {/* 개인정보 제공 */}
+          <div className="bg-white rounded-lg shadow p-4 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-10 h-10 md:w-12 md:h-12">
+              <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-green-600 to-green-700 transform rotate-45 -translate-x-5 -translate-y-5 md:-translate-x-6 md:-translate-y-6 shadow-lg"></div>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <h3 className="text-sm font-semibold text-gray-900 mb-2">
               개인정보 제공
             </h3>
             {loading ? (
               <div className="h-9 bg-gray-200 rounded animate-pulse"></div>
             ) : (
-              <p className="text-3xl font-bold text-green-600">
+              <p className="text-2xl font-bold text-green-600">
                 {surveys.filter(s => s.has_personal_info).length}
               </p>
             )}
           </div>
           
-          <div className="bg-white rounded-lg shadow p-6 relative overflow-hidden">
-            {/* 파랑색 책갈피 */}
-            <div className="absolute top-0 left-0 w-12 h-12 md:w-14 md:h-14">
-              <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-600 to-blue-700 transform rotate-45 -translate-x-6 -translate-y-6 md:-translate-x-7 md:-translate-y-7 shadow-lg"></div>
+          {/* 일반병동 */}
+          <div className="bg-white rounded-lg shadow p-4 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-10 h-10 md:w-12 md:h-12">
+              <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-orange-600 to-orange-700 transform rotate-45 -translate-x-5 -translate-y-5 md:-translate-x-6 md:-translate-y-6 shadow-lg"></div>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <h3 className="text-sm font-semibold text-gray-900 mb-2">
+              일반병동
+            </h3>
+            {loading ? (
+              <div className="h-9 bg-gray-200 rounded animate-pulse"></div>
+            ) : (
+              <div>
+                <p className="text-2xl font-bold text-orange-600">
+                  {departmentStats['general-ward']?.current || 0}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  / {departmentStats['general-ward']?.limit || 150}
+                </p>
+              </div>
+            )}
+          </div>
+          
+          {/* 간호·간병통합서비스 병동 */}
+          <div className="bg-white rounded-lg shadow p-4 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-10 h-10 md:w-12 md:h-12">
+              <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-orange-600 to-orange-700 transform rotate-45 -translate-x-5 -translate-y-5 md:-translate-x-6 md:-translate-y-6 shadow-lg"></div>
+            </div>
+            <h3 className="text-sm font-semibold text-gray-900 mb-2">
+              통합병동
+            </h3>
+            {loading ? (
+              <div className="h-9 bg-gray-200 rounded animate-pulse"></div>
+            ) : (
+              <div>
+                <p className="text-2xl font-bold text-orange-600">
+                  {departmentStats['integrated-care-ward']?.current || 0}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  / {departmentStats['integrated-care-ward']?.limit || 70}
+                </p>
+              </div>
+            )}
+          </div>
+          
+          {/* 중환자실 */}
+          <div className="bg-white rounded-lg shadow p-4 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-10 h-10 md:w-12 md:h-12">
+              <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-orange-600 to-orange-700 transform rotate-45 -translate-x-5 -translate-y-5 md:-translate-x-6 md:-translate-y-6 shadow-lg"></div>
+            </div>
+            <h3 className="text-sm font-semibold text-gray-900 mb-2">
+              중환자실
+            </h3>
+            {loading ? (
+              <div className="h-9 bg-gray-200 rounded animate-pulse"></div>
+            ) : (
+              <div>
+                <p className="text-2xl font-bold text-orange-600">
+                  {departmentStats['icu']?.current || 0}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  / {departmentStats['icu']?.limit || 80}
+                </p>
+              </div>
+            )}
+          </div>
+          
+          {/* 최근 응답 */}
+          <div className="bg-white rounded-lg shadow p-4 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-10 h-10 md:w-12 md:h-12">
+              <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-gray-600 to-gray-700 transform rotate-45 -translate-x-5 -translate-y-5 md:-translate-x-6 md:-translate-y-6 shadow-lg"></div>
+            </div>
+            <h3 className="text-sm font-semibold text-gray-900 mb-2">
               최근 응답
             </h3>
             {loading ? (
               <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
             ) : sortedSurveys.length > 0 ? (
               <div className="text-sm text-gray-600">
-                <p>{new Date(sortedSurveys[0].created_at).toLocaleDateString('ko-KR')}</p>
+                <p className="text-xs">{new Date(sortedSurveys[0].created_at).toLocaleDateString('ko-KR')}</p>
                 <p className="text-xs text-gray-500">{new Date(sortedSurveys[0].created_at).toLocaleTimeString('ko-KR')}</p>
               </div>
             ) : (
-              <p className="text-sm text-gray-500">응답 없음</p>
+              <p className="text-xs text-gray-500">응답 없음</p>
             )}
           </div>
         </div>
@@ -1151,6 +1294,16 @@ export default function AdminDashboardPage() {
           </div>
         </div>
       )}
+
+      {/* 응답자 수 제한 설정 모달 */}
+      <SurveyLimitsModal
+        isOpen={showLimitsModal}
+        onClose={() => setShowLimitsModal(false)}
+        onUpdate={() => {
+          // 설정 변경 후 데이터 새로고침
+          fetchSurveys()
+        }}
+      />
 
 
     </div>

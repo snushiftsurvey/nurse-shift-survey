@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSurvey } from '@/hooks/useSurvey'
 import { useProtectedRoute } from '@/hooks/useProtectedRoute'
+import { supabasePublic } from '@/lib/supabase'
 
 const questions = [
   {
@@ -62,9 +63,93 @@ const questions = [
 export default function EligibilityPage() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>({})
+  const [departmentLimits, setDepartmentLimits] = useState<Record<string, {current: number, limit: number}>>({})
+  const [limitsLoaded, setLimitsLoaded] = useState(false)
   const { updateSurveyData } = useSurvey()
   const router = useRouter()
   const isAccessible = useProtectedRoute()
+
+  // 2번에서 3번 문항으로 넘어갈 때 부서별 제한과 통계 미리 로드
+  useEffect(() => {
+    const isMovingToDepartmentQuestion = currentQuestionIndex === 2 // 3번째 문항 (0-based index)
+    if (isMovingToDepartmentQuestion && !limitsLoaded) {
+  
+      loadDepartmentLimits()
+    }
+  }, [currentQuestionIndex, limitsLoaded])
+
+  // 3번 문항 접근 시 모든 부서별 제한과 현재 통계 미리 로드
+  const loadDepartmentLimits = async () => {
+    try {
+
+      
+      // 1. 모든 부서별 제한 설정 조회
+      const { data: limitsData, error: limitsError } = await supabasePublic
+        .from('survey_limits')
+        .select('setting_name, setting_value, department')
+        .in('setting_name', ['general_ward_limit', 'integrated_care_ward_limit', 'icu_limit'])
+      
+      if (limitsError) {
+        return
+      }
+
+      // 2. 모든 부서별 현재 응답 수 조회 (영문과 한글 모두 확인)
+      const { data: statsData, error: statsError } = await supabasePublic
+        .from('surveys')
+        .select('department')
+        .in('department', ['general-ward', 'integrated-care-ward', 'icu', '일반병동', '간호·간병통합서비스 병동', '중환자실'])
+      
+      if (statsError) {
+        return
+      }
+
+      // 3. 통계 계산 (영문/한글 모두 카운트)
+      const stats = {
+        'general-ward': (statsData?.filter(s => s.department === 'general-ward' || s.department === '일반병동').length || 0),
+        'integrated-care-ward': (statsData?.filter(s => s.department === 'integrated-care-ward' || s.department === '간호·간병통합서비스 병동').length || 0),
+        'icu': (statsData?.filter(s => s.department === 'icu' || s.department === '중환자실').length || 0)
+      }
+
+      // 4. 제한과 통계 매핑
+      const limits: Record<string, {current: number, limit: number}> = {}
+      
+      limitsData?.forEach(limitItem => {
+        if (limitItem.department) {
+          limits[limitItem.department] = {
+            current: stats[limitItem.department as keyof typeof stats],
+            limit: limitItem.setting_value
+          }
+        }
+      })
+
+
+      setDepartmentLimits(limits)
+      setLimitsLoaded(true)
+      
+    } catch (error) {
+      // 오류 발생 시 조용히 처리
+    }
+  }
+
+  // 사용자 선택 시 즉시 제한 확인
+  const checkSelectedDepartment = (selectedDepartment: string) => {
+    const deptData = departmentLimits[selectedDepartment]
+    if (!deptData) {
+      return true
+    }
+    
+    if (deptData.current >= deptData.limit) {
+      const deptName = selectedDepartment === 'general-ward' ? '일반병동' :
+        selectedDepartment === 'integrated-care-ward' ? '간호·간병통합서비스 병동' :
+        selectedDepartment === 'icu' ? '중환자실' : selectedDepartment
+      
+      alert(`가능한 설문응답이 종료되었습니다\n(사유: ${deptName} 응답자 수 초과)`)
+      router.push('/')
+      return false
+    }
+
+    return true
+  }
 
   // 설문이 시작되지 않았으면 빈 화면 표시 (리다이렉트 진행 중)
   if (!isAccessible) {
@@ -79,14 +164,23 @@ export default function EligibilityPage() {
   const currentQuestion = questions[currentQuestionIndex]
   const isLastQuestion = currentQuestionIndex === questions.length - 1
 
-  const handleAnswer = (value: string) => {
+  const handleAnswer = async (value: string) => {
     const newAnswers = { ...answers, [currentQuestion.id]: value }
+    
+    // 부서 선택 시 즉시 제한 확인
+    if (currentQuestion.id === 'department') {
+      const isAllowed = checkSelectedDepartment(value)
+      if (!isAllowed) {
+        return // 제한 초과 시 선택 차단
+      }
+    }
+    
     setAnswers(newAnswers)
     
     const selectedOption = currentQuestion.options.find(opt => opt.value === value)
     
     if (!selectedOption?.isEligible) {
-      alert('연구대상’에 해당되지 않아 설문이 종료됩니다. 감사합니다.')
+      alert('연구대상에 해당되지 않아 설문이 종료됩니다. 감사합니다.')
       router.push('/')
       return
     }
@@ -104,7 +198,7 @@ export default function EligibilityPage() {
     }
   }
 
-  const handleNext = () => {
+  const handleNext = async () => {
     const currentAnswer = answers[currentQuestion.id]
     
     if (!currentAnswer) {
@@ -121,6 +215,14 @@ export default function EligibilityPage() {
     }
 
     if (isLastQuestion) {
+      // 마지막 문항에서 한 번 더 부서 제한 확인
+      if (answers.department) {
+        const isAllowed = checkSelectedDepartment(answers.department)
+        if (!isAllowed) {
+          return // 제한 초과 시 진행 차단
+        }
+      }
+      
       // 모든 답변을 surveyData에 저장
       updateSurveyData({
         medicalInstitutionType: answers.medicalInstitutionType as 'tertiary' | 'general' | 'hospital' | 'other',
