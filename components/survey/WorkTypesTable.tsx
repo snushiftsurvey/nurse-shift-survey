@@ -68,24 +68,18 @@ export default function WorkTypesTable({ workTypes, onChange }: WorkTypesTablePr
       <div className="border border-gray-200 rounded-lg overflow-hidden">
         <div className="bg-gray-50 px-1 md:px-4 py-2 md:py-3 border-b border-gray-200">
           <div className="grid grid-cols-12 gap-0.5 md:gap-4 text-xs md:text-sm font-semibold md:font-medium text-gray-700">
-            <div className="col-span-4 md:col-span-4">
-              <span className="block md:inline text-[9px] md:text-sm">근무명칭</span>
+            <div className="col-span-4 md:col-span-4 text-center">
+              <span className="block text-[9px] md:text-sm">근무명칭</span>
               <span className="text-[9px] md:text-xs text-gray-500 block">(한글/영어 모두 가능)</span>
             </div>
-            <div className="col-span-2 md:col-span-2">
-              <span className="block md:hidden text-[9px]">정규시작시각</span>
-              <span className="hidden md:block">정규 시작</span>
-              <span className="text-[9px] md:text-xs text-gray-500 hidden md:inline">시각</span>
+            <div className="col-span-2 md:col-span-2 text-center">
+              <span className="block text-[9px] md:text-sm leading-tight">정규<br/>시작시각</span>
             </div>
-            <div className="col-span-2 md:col-span-2">
-              <span className="block md:hidden text-[9px]">정규종료시각</span>
-              <span className="hidden md:block">정규 종료</span>
-              <span className="text-[9px] md:text-xs text-gray-500 hidden md:inline">시각</span>
+            <div className="col-span-2 md:col-span-2 text-center">
+              <span className="block text-[9px] md:text-sm leading-tight">정규<br/>종료시각</span>
             </div>
-            <div className="col-span-3 md:col-span-3">
-              <span className="block md:hidden text-[9px] leading-tight">정규 근무시간 중<br/>보장된 휴게시간</span>
-              <span className="hidden md:block">휴게</span>
-              <span className="text-[9px] md:text-xs text-gray-500 hidden md:block leading-tight">정규 근무시간 중 보장된 휴게시간</span>
+            <div className="col-span-3 md:col-span-3 text-center">
+              <span className="block text-[9px] md:text-sm leading-tight">정규 근무시간 중<br/>보장된 휴게시간</span>
             </div>
             <div className="col-span-1 md:col-span-1 text-center">
               <span className="text-[9px] md:text-sm">삭제</span>
