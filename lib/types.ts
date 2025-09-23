@@ -39,6 +39,11 @@ export interface SurveyData {
   
   // 동의 여부
   consentPersonalInfo: boolean
+  
+  // 전자서명 관련
+  consentName?: string
+  consentSignature?: string
+  consentDate?: string
 }
 
 export interface PersonalInfo {

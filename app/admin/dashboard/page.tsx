@@ -7,6 +7,8 @@ import { supabase } from '@/lib/supabase'
 import { createClient } from '@supabase/supabase-js'
 import WorkScheduleViewer from '@/components/admin/WorkScheduleViewer'
 import SurveyLimitsModal from '@/components/admin/SurveyLimitsModal'
+import ConsentDownloader from '@/components/admin/ConsentDownloader'
+import PDFManager from '@/components/admin/PDFManager'
 
 interface SurveyData {
   id: string
@@ -21,6 +23,21 @@ interface SurveyData {
   created_at: string
   has_personal_info: boolean
   personal_info?: { id: string }[]
+  consent_pdf?: {
+    id: string
+    survey_id: string
+    participant_name: string
+    participant_phone?: string
+    consent_date: string
+    researcher_name: string
+    researcher_signature: string
+    researcher_date: string
+    consent_form1_pdf: string
+    consent_form2_pdf: string
+    consent_signature1?: string
+    consent_signature2?: string
+    created_at: string
+  }[]
 }
 
 interface DetailedSurveyData extends SurveyData {
@@ -290,7 +307,22 @@ export default function AdminDashboardPage() {
           department,
           consent_personal_info,
           created_at,
-          personal_info(id)
+          personal_info(id),
+          consent_pdfs(
+            id,
+            survey_id,
+            participant_name,
+            participant_phone,
+            consent_date,
+            researcher_name,
+            researcher_signature,
+            researcher_date,
+            consent_form1_pdf,
+            consent_form2_pdf,
+            consent_signature1,
+            consent_signature2,
+            created_at
+          )
         `)
         .order('created_at', { ascending: false })
 
@@ -301,10 +333,11 @@ export default function AdminDashboardPage() {
       console.log(`📊 authenticated 조회 결과:`, data?.length, '개')
       console.log('📋 조회된 데이터 ID들:', data?.map(s => s.id.substring(0, 8)))
 
-      // personal_info 관계를 기반으로 has_personal_info 설정
+      // personal_info와 consent_pdf 관계를 기반으로 설정
       const surveysWithPersonalInfo = data?.map(survey => ({
         ...survey,
-        has_personal_info: survey.personal_info && survey.personal_info.length > 0
+        has_personal_info: survey.personal_info && survey.personal_info.length > 0,
+        consent_pdf: survey.consent_pdfs || []
       })) || []
 
       console.log(`✅ UI 설정 완료:`, surveysWithPersonalInfo.length, '개')
@@ -1080,29 +1113,26 @@ export default function AdminDashboardPage() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
-                      <div className="flex items-center whitespace-nowrap">
-                        <input
-                          type="checkbox"
-                          checked={surveys.length > 0 && selectedSurveyIds.length === surveys.length}
-                          onChange={(e) => handleSelectAll(e.target.checked)}
-                          className="mr-1 h-4 w-4 text-blue-600 border-2 border-gray-400 rounded focus:ring-blue-500 focus:ring-2"
-                        />
-                        선택
-                      </div>
+                    <th className="w-12 px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <input
+                        type="checkbox"
+                        checked={surveys.length > 0 && selectedSurveyIds.length === surveys.length}
+                        onChange={(e) => handleSelectAll(e.target.checked)}
+                        className="h-3 w-3 text-blue-600 border-2 border-gray-400 rounded focus:ring-blue-500 focus:ring-1"
+                      />
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                    <th className="w-20 px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       <button 
                         onClick={() => handleSort('hire_date')}
                         className={`flex items-center space-x-1 hover:text-gray-700 transition-colors ${
                           sortField === 'hire_date' ? 'text-blue-600' : ''
                         }`}
                       >
-                        <span>입사연월</span>
+                        <span>입사년월</span>
                         <SortIcon field="hire_date" />
                       </button>
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                    <th className="w-24 px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       <button 
                         onClick={() => handleSort('age')}
                         className={`flex items-center space-x-1 hover:text-gray-700 transition-colors ${
@@ -1113,18 +1143,18 @@ export default function AdminDashboardPage() {
                         <SortIcon field="age" />
                       </button>
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                    <th className="w-32 px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       <button 
                         onClick={() => handleSort('medical_institution_type')}
                         className={`flex items-center space-x-1 hover:text-gray-700 transition-colors ${
                           sortField === 'medical_institution_type' ? 'text-blue-600' : ''
                         }`}
                       >
-                        <span>의료기관</span>
+                        <span>기관</span>
                         <SortIcon field="medical_institution_type" />
                       </button>
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                    <th className="w-24 px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       <button 
                         onClick={() => handleSort('department')}
                         className={`flex items-center space-x-1 hover:text-gray-700 transition-colors ${
@@ -1135,7 +1165,7 @@ export default function AdminDashboardPage() {
                         <SortIcon field="department" />
                       </button>
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                    <th className="w-16 px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       <button 
                         onClick={() => handleSort('medical_institution_location')}
                         className={`flex items-center space-x-1 hover:text-gray-700 transition-colors ${
@@ -1146,10 +1176,13 @@ export default function AdminDashboardPage() {
                         <SortIcon field="medical_institution_location" />
                       </button>
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                    <th className="w-20 px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       개인정보
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                    <th className="w-20 px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                      동의서
+                    </th>
+                    <th className="w-24 px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       <button 
                         onClick={() => handleSort('created_at')}
                         className={`flex items-center space-x-1 hover:text-gray-700 transition-colors ${
@@ -1160,7 +1193,7 @@ export default function AdminDashboardPage() {
                         <SortIcon field="created_at" />
                       </button>
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                    <th className="w-16 px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       액션
                     </th>
                   </tr>
@@ -1168,43 +1201,52 @@ export default function AdminDashboardPage() {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {sortedSurveys.map((survey) => (
                     <tr key={survey.id} className="hover:bg-gray-50">
-                      <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 w-20">
+                      <td className="w-12 px-2 py-2 whitespace-nowrap text-xs text-gray-900">
                         <input
                           type="checkbox"
                           checked={selectedSurveyIds.includes(survey.id)}
                           onChange={(e) => handleSelectSurvey(survey.id, e.target.checked)}
-                          className="h-4 w-4 text-blue-600 border-2 border-gray-400 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
+                          className="h-3 w-3 text-blue-600 border-2 border-gray-400 rounded focus:ring-blue-500 focus:ring-1 cursor-pointer"
                         />
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {survey.hire_year}년 {survey.hire_month}월
+                      <td className="w-20 px-2 py-2 whitespace-nowrap text-xs text-gray-900">
+                        {survey.hire_year}.{String(survey.hire_month).padStart(2, '0')}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="w-24 px-2 py-2 whitespace-nowrap text-xs text-gray-900">
                         {getGenderLabel(survey.gender)} / {survey.age}세
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="w-32 px-2 py-2 whitespace-nowrap text-xs text-gray-900">
                         {getInstitutionTypeLabel(survey.medical_institution_type)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="w-24 px-2 py-2 whitespace-nowrap text-xs text-gray-900">
                         {getDepartmentLabel(survey.department)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="w-16 px-2 py-2 whitespace-nowrap text-xs text-gray-900">
                         {getLocationLabel(survey.medical_institution_location)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          survey.has_personal_info 
+                      <td className="w-20 px-2 py-2 whitespace-nowrap">
+                        <span className={`inline-flex px-1 py-0.5 text-xs font-semibold rounded-full ${
+                          survey.has_personal_info
                             ? 'bg-green-100 text-green-800' 
                             : 'bg-gray-100 text-gray-800'
                         }`}>
                           {survey.has_personal_info ? '제공' : '미제공'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {new Date(survey.created_at).toLocaleString('ko-KR')}
+                      <td className="w-20 px-2 py-2 whitespace-nowrap">
+                        {survey.consent_pdf && survey.consent_pdf.length > 0 ? (
+                          <ConsentDownloader consentRecord={survey.consent_pdf[0]} />
+                        ) : (
+                          <span className="inline-flex px-1 py-0.5 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                            없음
+                          </span>
+                        )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        <div className="flex space-x-2">
+                      <td className="w-24 px-2 py-2 whitespace-nowrap text-xs text-gray-900">
+                        {new Date(survey.created_at).toLocaleDateString('ko-KR')}
+                      </td>
+                      <td className="w-16 px-2 py-2 whitespace-nowrap text-xs text-gray-900">
+                        <div className="flex space-x-1">
                           {/* 근무표 보기 버튼 */}
                           <button 
                             onClick={() => fetchSurveyDetail(survey.id)}

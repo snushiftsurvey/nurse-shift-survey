@@ -1,9 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useSurvey } from '@/hooks/useSurvey'
+import { useConsentDraft } from '@/hooks/useConsentDraft'
+import { useConsentPDF } from '@/hooks/useConsentPDF'
+import { useResearcher } from '@/hooks/useResearcher'
 import { useProtectedRoute } from '@/hooks/useProtectedRoute'
 import { supabase } from '@/lib/supabase'
 
@@ -18,6 +21,19 @@ export default function PersonalInfoPage() {
   const { updateSurveyData, updatePersonalInfo, submitSurvey } = useSurvey()
   const router = useRouter()
   const isAccessible = useProtectedRoute()
+  
+  // 동의서 관련 훅
+  const { draft, clearDraft } = useConsentDraft()
+  const { generateAndSavePDF, generating } = useConsentPDF()
+  const { researcher } = useResearcher()
+
+  // 디버깅: draft와 researcher 상태 로그
+  useEffect(() => {
+    console.log('🔍 personal-info 페이지 상태 확인:', {
+      draft,
+      researcher: researcher ? { name: researcher.name, hasSignature: !!researcher.signature_image } : null
+    })
+  }, [draft, researcher])
 
   // 설문이 시작되지 않았으면 빈 화면 표시 (리다이렉트 진행 중)
   if (!isAccessible) {
@@ -42,7 +58,73 @@ export default function PersonalInfoPage() {
       if (consentPersonalInfo === false) {
         // 개인정보 수집에 동의하지 않은 경우 - 설문 데이터만 저장
         console.log('📝 개인정보 미동의 - 설문 데이터만 저장')
-        await submitSurvey({ consentPersonalInfo: false })
+        const surveyResult = await submitSurvey({ consentPersonalInfo: false })
+
+        // 🎯 서명 데이터 저장 (개인정보 미동의)
+        console.log('서명 데이터 저장 조건 확인 (개인정보 미동의):', {
+          draft: !!draft,
+          researcher: !!researcher,
+          surveyId: !!surveyResult,
+          surveyIdValue: surveyResult,
+          draftData: draft ? { name: draft.consent_name, sig1: !!draft.consent_signature1, sig2: !!draft.consent_signature2 } : null
+        })
+        
+        if (draft && researcher && surveyResult) {
+          console.log('📝 서명 데이터 저장 시작 (개인정보 미동의)...')
+          try {
+            const consentData = {
+              survey_id: surveyResult,
+              participant_name: draft.consent_name || '참여자', // 동의서에 기입한 이름 사용
+              participant_phone: undefined, // 개인정보 미동의이므로 전화번호 없음
+              consent_date: draft.consent_date || new Date().toLocaleDateString('ko-KR', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+              }).replace(/\s/g, '').replace(/\.$/, ''),
+              researcher_name: researcher.name,
+              researcher_signature: researcher.signature_image,
+              researcher_date: new Date().toLocaleDateString('ko-KR', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+              }).replace(/\s/g, '').replace(/\.$/, ''),
+              consent_signature1: draft.consent_signature1 || '',
+              consent_signature2: draft.consent_signature2 || ''
+            }
+
+            // PDF 생성 시도 (실패해도 설문은 완료)
+            console.log('📄 동의서 PDF 생성 시도 중 (개인정보 미동의)...')
+            try {
+              const pdfResult = await generateAndSavePDF(consentData)
+              if (pdfResult.success) {
+                console.log('✅ PDF 생성 및 저장 완료')
+              } else {
+                console.warn('⚠️ PDF 생성 실패, 하지만 설문은 완료:', pdfResult.error)
+                // PDF 실패해도 설문은 완료된 것으로 처리 (alert 제거)
+              }
+            } catch (error) {
+              console.warn('⚠️ PDF 처리 실패, 하지만 설문은 완료:', error)
+              // 에러 발생해도 설문은 완료된 것으로 처리
+            }
+            
+            // 임시 데이터 정리
+            await clearDraft()
+          } catch (error) {
+            console.error('❌ 서명 데이터 처리 중 오류 (개인정보 미동의):', error)
+            // 오류 발생해도 설문은 완료된 것으로 처리
+          }
+        } else {
+          console.warn('⚠️ 서명 데이터 저장 조건 미충족 - 저장 건너뜀 (개인정보 미동의)')
+          console.warn('조건 상세:', {
+            'draft 존재': !!draft,
+            'draft 내용': draft,
+            'researcher 존재': !!researcher,  
+            'researcher 내용': researcher,
+            'surveyId 존재': !!surveyResult,
+            'surveyId': surveyResult
+          })
+        }
+
         alert('감사합니다. 설문이 완료되었습니다.')
         router.push('/survey/complete')
       } else if (consentPersonalInfo === true) {
@@ -115,10 +197,75 @@ export default function PersonalInfoPage() {
         // 설문 데이터와 개인정보 모두 저장 (직접 값 전달)
         console.log('📝 개인정보 동의 - 개인정보와 설문 데이터 모두 저장')
         console.log('📋 제출할 개인정보:', personalInfo)
-        await submitSurvey({ 
+        const surveyResult = await submitSurvey({ 
           consentPersonalInfo: true, 
           personalInfo 
         })
+
+        // 🎯 서명 데이터 저장 (개인정보 동의)
+        console.log('서명 데이터 저장 조건 확인 (개인정보 동의):', {
+          draft: !!draft,
+          researcher: !!researcher,
+          surveyId: !!surveyResult,  // surveyResult가 직접 ID 문자열임
+          surveyIdValue: surveyResult,
+          draftData: draft ? { name: draft.consent_name, sig1: !!draft.consent_signature1, sig2: !!draft.consent_signature2 } : null
+        })
+        
+        if (draft && researcher && surveyResult) {  // surveyResult가 직접 ID임
+          console.log('📝 서명 데이터 저장 시작 (개인정보 동의)...')
+          try {
+            const consentData = {
+              survey_id: surveyResult,  // surveyResult가 직접 ID 문자열
+              participant_name: personalInfo.name,
+              participant_phone: personalInfo.phoneNumber,
+              consent_date: draft.consent_date || new Date().toLocaleDateString('ko-KR', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+              }).replace(/\s/g, '').replace(/\.$/, ''),
+              researcher_name: researcher.name,
+              researcher_signature: researcher.signature_image,
+              researcher_date: new Date().toLocaleDateString('ko-KR', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+              }).replace(/\s/g, '').replace(/\.$/, ''),
+              consent_signature1: draft.consent_signature1 || '',
+              consent_signature2: draft.consent_signature2 || ''
+            }
+
+            // PDF 생성 시도 (실패해도 설문은 완료)
+            console.log('📄 동의서 PDF 생성 시도 중 (개인정보 동의)...')
+            try {
+              const pdfResult = await generateAndSavePDF(consentData)
+              if (pdfResult.success) {
+                console.log('✅ PDF 생성 및 저장 완료')
+              } else {
+                console.warn('⚠️ PDF 생성 실패, 하지만 설문은 완료:', pdfResult.error)
+                // PDF 실패해도 설문은 완료된 것으로 처리 (alert 제거)
+              }
+            } catch (error) {
+              console.warn('⚠️ PDF 처리 실패, 하지만 설문은 완료:', error)
+              // 에러 발생해도 설문은 완료된 것으로 처리
+            }
+            
+            // 임시 데이터 정리
+            await clearDraft()
+          } catch (error) {
+            console.error('❌ 서명 데이터 처리 중 오류 (개인정보 동의):', error)
+            // 오류 발생해도 설문은 완료된 것으로 처리
+          }
+        } else {
+          console.warn('⚠️ 서명 데이터 저장 조건 미충족 - 저장 건너뜀 (개인정보 동의)')
+          console.warn('조건 상세:', {
+            'draft 존재': !!draft,
+            'draft 내용': draft,
+            'researcher 존재': !!researcher,  
+            'researcher 내용': researcher,
+            'surveyId 존재': !!surveyResult,
+            'surveyId': surveyResult
+          })
+        }
         alert('감사합니다. 설문이 완료되었습니다.')
         router.push('/survey/complete')
       }
@@ -273,10 +420,10 @@ export default function PersonalInfoPage() {
             
             <button
               onClick={handleSubmit}
-              disabled={consentPersonalInfo === null || isSubmitting}
+              disabled={consentPersonalInfo === null || isSubmitting || generating}
               className="px-4 py-2 sm:px-6 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed text-sm sm:text-base flex-shrink-0"
             >
-              {isSubmitting ? '제출 중...' : '설문 완료'}
+              {generating ? '저장 중...' : isSubmitting ? '제출 중...' : '설문 완료'}
             </button>
           </div>
         </div>
