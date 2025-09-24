@@ -278,13 +278,13 @@ export default function ConsentFormOverlay({
         {/* 성명1 입력 필드 - 모바일 viewport 변화 방지를 위해 클릭 모달 방식 */}
         <div
           onClick={openNameInputModal}
-          className={`border-1 border-gray-400 text-black font-medium px-1 text-center flex items-center justify-center rounded-sm cursor-pointer hover:bg-green-50 hover:bg-opacity-40 transition-colors ${
-            consentData.name.trim() ? 'bg-transparent' : 'bg-green-50 bg-opacity-60 animate-pulse-input'
+          className={`cursor-pointer hover:bg-green-50 hover:bg-opacity-20 transition-colors border-2 border-dashed hover:border-green-300 rounded-sm text-black font-medium px-1 text-center flex items-center justify-center ${
+            consentData.name.trim() ? 'bg-transparent border-transparent' : 'bg-green-50 bg-opacity-40 border-green-300 animate-pulse-signature'
           }`}
           style={getCoordinateStyle('name1')}
         >
           {consentData.name || (
-            <span className="text-green-600 opacity-70" style={{ fontSize: '11px' }}>성명 입력</span>
+            <span className="text-black signature-guide-text font-medium" style={{ fontSize: '10px !important', lineHeight: '1 !important' }}>클릭해서 성명 입력</span>
           )}
         </div>
 
@@ -310,10 +310,10 @@ export default function ConsentFormOverlay({
             // 서명이 없는 경우: 안내 메시지
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="flex items-center justify-center space-x-1">
-                <svg className="w-2.5 h-2.5 sm:w-4 sm:h-4 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-2.5 h-2.5 sm:w-4 sm:h-4 text-black flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
-                <span className="text-green-600 sm:text-xs signature-guide-text font-medium" style={{ fontSize: '11px' }}>서명</span>
+                <span className="text-black signature-guide-text font-medium" style={{ fontSize: '10px !important', lineHeight: '1 !important' }}>클릭해서 서명</span>
               </div>
             </div>
           )}
