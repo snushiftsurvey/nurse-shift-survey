@@ -7,7 +7,7 @@ interface PDFManagerProps {
   consentRecord: {
     id: string
     survey_id: string
-    participant_name: string
+    participant_name?: string
     participant_phone?: string
     consent_date: string
     researcher_name: string

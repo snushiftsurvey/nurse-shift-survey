@@ -6,7 +6,7 @@ interface ConsentDownloaderProps {
   consentRecord: {
     id: string
     survey_id: string
-    participant_name: string
+    participant_name?: string
     participant_phone?: string
     consent_date: string
     researcher_name: string
@@ -30,7 +30,7 @@ export default function ConsentDownloader({ consentRecord }: ConsentDownloaderPr
       if (pdfData) {
         // 날짜를 YYYYMMDD 형식으로 변환 (2025.01.01 → 20250101)
         const dateFormatted = consentRecord.consent_date.replace(/\./g, '')
-        const fileName = `동의서_${consentRecord.participant_name}_${dateFormatted}.pdf`
+        const fileName = `${consentRecord.survey_id}_${dateFormatted}.pdf`
 
         // 배포는 HTTPS 가정: data URI 직접 다운로드
         const link = document.createElement('a')

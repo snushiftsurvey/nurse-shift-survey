@@ -8,17 +8,17 @@ import { useProtectedRoute } from '@/hooks/useProtectedRoute'
 import { useResearcher } from '@/hooks/useResearcher'
 import { useConsentDraft } from '@/hooks/useConsentDraft'
 import ConsentFormOverlay from '@/components/survey/ConsentFormOverlay'
+import UnifiedSignatureModal from '@/components/survey/UnifiedSignatureModal'
 
 export default function ConsentPage() {
   const [consentData, setConsentData] = useState({
-    name1: '',       // 첫 번째 동의서용 성명
-    name2: '',       // 두 번째 동의서용 성명  
-    signature1: '',  // agree-sig-1용 서명
-    signature2: '',  // agree-sig-2용 서명
+    name: '',        // 통합된 성명 (펜으로 작성)
+    signature: '',   // 통합된 서명 (두 동의서에 동일하게 적용)
     date: '', // 현재 시간으로 동적 설정
     agreed: null as boolean | null
   })
   const [isVisible, setIsVisible] = useState(false)
+  const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false)
   
   const router = useRouter()
   const isAccessible = useProtectedRoute()
@@ -27,6 +27,17 @@ export default function ConsentPage() {
   // 연구원 정보 및 동의서 임시 저장 훅
   const { researcher, loading: researcherLoading } = useResearcher()
   const { draft, saveDraft, loading: draftLoading, startNewSession, clearDraft, refresh } = useConsentDraft()
+
+  // 페이지 진입 시 데이터 초기화 (새로운 동의서 작성)
+  useEffect(() => {
+    console.log('🔍 consent 페이지 진입 - 데이터 초기화')
+    setConsentData({
+      name: '',
+      signature: '',
+      date: '',
+      agreed: null
+    })
+  }, [])
 
   // 오늘 날짜를 YYYY/MM/DD 형식으로 초기 설정 (페이지 표시용)
   useEffect(() => {
@@ -78,7 +89,7 @@ export default function ConsentPage() {
     return () => {
       // 정상적인 흐름인지 확인
       const currentPath = window.location.pathname
-      const hasSignatureData = consentData.signature1 || consentData.signature2
+      const hasSignatureData = consentData.signature
       
       // personal-info나 complete로 정상 진행하는 경우는 정리하지 않음
       if (currentPath === '/survey/personal-info' || 
@@ -148,18 +159,13 @@ export default function ConsentPage() {
       return
     }
     
-    if (!consentData.name1.trim() || !consentData.name2.trim()) {
-      alert('모든 동의서에 성명을 입력해주세요.')
+    if (!consentData.name.trim()) {
+      alert('성명을 입력해주세요.')
       return
     }
     
-    if (!consentData.signature1.trim()) {
-      alert('첫 번째 동의서에 서명을 완료해주세요.')
-      return
-    }
-    
-    if (!consentData.signature2.trim()) {
-      alert('두 번째 동의서에 서명을 완료해주세요.')
+    if (!consentData.signature.trim()) {
+      alert('서명을 완료해주세요.')
       return
     }
     
@@ -175,9 +181,9 @@ export default function ConsentPage() {
       }).replace(/\s/g, '').replace(/\.$/, '')
       
       const saveResult = await saveDraft({
-        consent_name: consentData.name1, // 첫 번째 동의서 이름 사용
-        consent_signature1: consentData.signature1,
-        consent_signature2: consentData.signature2,
+        consent_name: consentData.name, // 통합된 성명 사용
+        consent_signature1: consentData.signature, // 동일한 서명을 signature1으로 저장
+        consent_signature2: consentData.signature, // 동일한 서명을 signature2로도 저장 (호환성)
         consent_date: currentDate, // 현재 시간으로 설정
         researcher_id: researcher?.id
       })
@@ -191,28 +197,35 @@ export default function ConsentPage() {
     }
   }
 
-  const handleName1Change = (name: string) => {
-    setConsentData(prev => ({ ...prev, name1: name }))
+  const handleNameChange = (name: string) => {
+    setConsentData(prev => ({ ...prev, name: name }))
     // 실시간 임시 저장 제거 - 다음 버튼 클릭 시에만 저장
   }
 
-  const handleName2Change = (name: string) => {
-    setConsentData(prev => ({ ...prev, name2: name }))
-    // 실시간 임시 저장 제거 - 다음 버튼 클릭 시에만 저장
-  }
-
-  const handleSignature1Change = (signature: string) => {
-    setConsentData(prev => ({ ...prev, signature1: signature }))
-    // 실시간 임시 저장 제거 - 다음 버튼 클릭 시에만 저장
-  }
-
-  const handleSignature2Change = (signature: string) => {
-    setConsentData(prev => ({ ...prev, signature2: signature }))
+  const handleSignatureChange = (signature: string) => {
+    setConsentData(prev => ({ ...prev, signature: signature }))
     // 실시간 임시 저장 제거 - 다음 버튼 클릭 시에만 저장
   }
 
   const handleAgreementChange = (agreed: boolean) => {
-    setConsentData(prev => ({ ...prev, agreed }))
+    if (agreed) {
+      // 동의함 선택 시 서명 모달 열기
+      setIsSignatureModalOpen(true)
+    } else {
+      // 동의하지 않음 선택 시 바로 상태 업데이트
+      setConsentData(prev => ({ ...prev, agreed: false }))
+    }
+  }
+
+  // 서명 모달에서 확인 버튼 클릭 시
+  const handleSignatureConfirm = (data: { name: string; signature: string }) => {
+    setConsentData(prev => ({
+      ...prev,
+      name: data.name,
+      signature: data.signature,
+      agreed: true // 서명 완료 시 동의 처리
+    }))
+    setIsSignatureModalOpen(false)
   }
 
   // 디바운싱된 자동 저장 제거 - 다음 버튼 클릭 시에만 저장
@@ -266,17 +279,11 @@ export default function ConsentPage() {
               </div>
 
               
-          {/* 첫 번째 동의서 - 서명 가능 */}
+          {/* 첫 번째 동의서 */}
           <ConsentFormOverlay
-            consentData={{
-              name: consentData.name1,  // 첫 번째 동의서는 name1 사용
-              signature1: consentData.signature1,
-              signature2: consentData.signature2,
-              date: consentData.date,
-              agreed: consentData.agreed
-            }}
-            onNameChange={handleName1Change}
-            onSignatureChange={handleSignature1Change}
+            consentData={consentData}
+            onNameChange={handleNameChange}
+            onSignatureChange={handleSignatureChange}
             imageSrc="/images/signature/agree-sig-1.png?0924?2025-0924"
             signatureKey="signature1"
             title="첫 번째 동의서"
@@ -291,17 +298,11 @@ export default function ConsentPage() {
             } : undefined}
           />
 
-          {/* 두 번째 동의서 - 서명 가능 */}
+          {/* 두 번째 동의서 */}
           <ConsentFormOverlay
-            consentData={{
-              name: consentData.name2,  // 두 번째 동의서는 name2 사용
-              signature1: consentData.signature1,
-              signature2: consentData.signature2,
-              date: consentData.date,
-              agreed: consentData.agreed
-            }}
-            onNameChange={handleName2Change}
-            onSignatureChange={handleSignature2Change}
+            consentData={consentData}
+            onNameChange={handleNameChange}
+            onSignatureChange={handleSignatureChange}
             imageSrc="/images/signature/agree-sig-2.png?v=20250924"
             signatureKey="signature2"
             title="두 번째 동의서"
@@ -374,7 +375,7 @@ export default function ConsentPage() {
             
             <button
               onClick={handleSubmit}
-              disabled={draftLoading || researcherLoading || consentData.agreed !== true || !consentData.name1.trim() || !consentData.name2.trim() || !consentData.signature1.trim() || !consentData.signature2.trim()}
+              disabled={draftLoading || researcherLoading || consentData.agreed !== true || !consentData.name.trim() || !consentData.signature.trim()}
               className="px-4 py-2 sm:px-6 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed text-sm sm:text-base flex-shrink-0"
             >
               {draftLoading ? '저장 중...' : '다음'}
@@ -382,6 +383,17 @@ export default function ConsentPage() {
           </div>
         </div>
       </div>
+
+      {/* 통합 서명 모달 */}
+      <UnifiedSignatureModal
+        isOpen={isSignatureModalOpen}
+        onClose={() => setIsSignatureModalOpen(false)}
+        onConfirm={handleSignatureConfirm}
+        initialData={{
+          name: consentData.name,
+          signature: consentData.signature
+        }}
+      />
     </div>
   )
 }

@@ -25,7 +25,7 @@ interface SurveyData {
   consent_pdf?: {
     id: string
     survey_id: string
-    participant_name: string
+    participant_name_signature?: string
     participant_phone?: string
     consent_date: string
     researcher_name: string
@@ -308,7 +308,7 @@ export default function AdminDashboardPage() {
           consent_pdfs(
             id,
             survey_id,
-            participant_name,
+            participant_name_signature,
             participant_phone,
             consent_date,
             researcher_name,
@@ -961,7 +961,7 @@ export default function AdminDashboardPage() {
                   {departmentStats['general-ward']?.current || 0}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  / {departmentStats['general-ward']?.limit || 150}
+                  / {departmentStats['general-ward']?.limit || 200}
                 </p>
               </div>
             )}
@@ -983,7 +983,7 @@ export default function AdminDashboardPage() {
                   {departmentStats['integrated-care-ward']?.current || 0}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  / {departmentStats['integrated-care-ward']?.limit || 70}
+                  / {departmentStats['integrated-care-ward']?.limit || 100}
                 </p>
               </div>
             )}
@@ -1005,7 +1005,7 @@ export default function AdminDashboardPage() {
                   {departmentStats['icu']?.current || 0}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  / {departmentStats['icu']?.limit || 80}
+                  / {departmentStats['icu']?.limit || 100}
                 </p>
               </div>
             )}

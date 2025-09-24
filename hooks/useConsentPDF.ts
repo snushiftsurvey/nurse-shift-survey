@@ -5,7 +5,7 @@ import html2canvas from 'html2canvas'
 
 interface ConsentPDFData {
   survey_id: string
-  participant_name: string
+  participant_name_signature: string
   participant_phone?: string
   participant_birth_date?: string // 생년월일 필드 추가
   consent_date: string
@@ -13,7 +13,7 @@ interface ConsentPDFData {
   researcher_signature: string
   researcher_date: string
   consent_signature1: string
-  consent_signature2: string
+  consent_signature2: string // 호환성 유지 (signature1과 동일한 값)
 }
 
 export function useConsentPDF() {
@@ -41,6 +41,22 @@ export function useConsentPDF() {
         ])
       }
 
+      // 연구원 정보는 저장 직전에 DB에서 확정값으로 재조회해 사용
+      try {
+        const { data: researcherRow, error: researcherErr } = await supabase
+          .from('researcher_profiles')
+          .select('name, signature_image')
+          .eq('name', data.researcher_name)
+          .single()
+
+        if (!researcherErr && researcherRow?.signature_image) {
+          data.researcher_name = researcherRow.name
+          data.researcher_signature = researcherRow.signature_image
+        }
+      } catch (_) {
+        // 조회 실패시 전달된 값을 그대로 사용 (생성은 계속 진행)
+      }
+
       // PDF 생성 (2페이지로 합침, 타임아웃 적용)
       console.log('📄 통합 PDF 생성 중... (최대 20초)')
       const combinedPDF = await withTimeout(
@@ -57,7 +73,7 @@ export function useConsentPDF() {
             .from('consent_pdfs')
             .insert({
               survey_id: data.survey_id,
-              participant_name: data.participant_name,
+              participant_name_signature: data.participant_name_signature,
               participant_phone: data.participant_phone,
               consent_date: data.consent_date,
               researcher_name: data.researcher_name,
@@ -103,7 +119,7 @@ export function useConsentPDF() {
   const generateCombinedConsentPDF = async (data: ConsentPDFData): Promise<string> => {
     try {
       console.log('🔧 통합 동의서 PDF 생성 시작 (2페이지)...', {
-        participant: data.participant_name,
+        hasParticipantNameSignature: !!data.participant_name_signature,
         hasSignature1: !!data.consent_signature1,
         hasSignature2: !!data.consent_signature2,
         signature1Length: data.consent_signature1?.length || 0,
@@ -112,8 +128,13 @@ export function useConsentPDF() {
       })
 
       // 서명 데이터 검증
-      if (!data.consent_signature1 || !data.consent_signature2) {
-        throw new Error(`서명 데이터 누락: signature1=${!!data.consent_signature1}, signature2=${!!data.consent_signature2}`)
+      if (!data.consent_signature1) {
+        throw new Error(`서명 데이터 누락: signature1=${!!data.consent_signature1}`)
+      }
+      
+      // signature2가 없으면 signature1과 동일하게 설정 (호환성)
+      if (!data.consent_signature2) {
+        data.consent_signature2 = data.consent_signature1
       }
 
       if (!data.researcher_signature) {
@@ -211,7 +232,7 @@ export function useConsentPDF() {
   const generateConsentPDF = async (data: ConsentPDFData, formNumber: 1 | 2): Promise<string> => {
     try {
       console.log(` 동의서 ${formNumber} PDF 생성 시작...`, {
-        participant: data.participant_name,
+        hasParticipantNameSignature: !!data.participant_name_signature,
         hasSignature1: !!data.consent_signature1,
         hasSignature2: !!data.consent_signature2
       })
@@ -293,6 +314,7 @@ export function useConsentPDF() {
       signature1: { left: 390, top: 614, right: 590, bottom: 661 },
       date1: { left: 638, top: 630, right: 839, bottom: 660 },
       name2: { left: 137, top: 698, right: 337, bottom: 739 },
+      // 화면에서는 signature2를 숨기지만, PDF에서는 researcher_signature만 배치
       signature2: { left: 392, top: 698, right: 590, bottom: 739 },
       date2: { left: 639, top: 709, right: 838, bottom: 740 }
     }
@@ -330,9 +352,9 @@ export function useConsentPDF() {
       <div style="position: relative; width: 992px; height: 1403px;">
         <img src="${imageSrc}" style="width: 100%; height: 100%; object-fit: contain;" />
         
-        <!-- 참여자 성명 -->
+        <!-- 참여자 성명 (이미지) -->
         <div style="${getPositionStyle('name1')}">
-          ${data.participant_name}
+          <img src="${data.participant_name_signature}" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
         </div>
         
         <!-- 참여자 서명 -->
@@ -345,9 +367,9 @@ export function useConsentPDF() {
           ${data.consent_date}
         </div>
         
-        <!-- 연구원 성명 -->
+        <!-- 연구원 성명 (서명 이미지로 표시) -->
         <div style="${getPositionStyle('name2')}">
-          ${data.researcher_name}
+          <img src="${data.researcher_signature}" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
         </div>
         
         <!-- 연구원 서명 -->
