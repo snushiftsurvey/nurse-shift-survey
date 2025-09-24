@@ -69,7 +69,6 @@ export function useSurvey() {
         consent_personal_info: finalConsentPersonalInfo || false,
       }
 
-      console.log(' surveys 테이블에 저장할 데이터:', surveyInsertData)
 
       const { data: surveyResponse, error: surveyError } = await supabasePublic
         .from('surveys')
@@ -82,7 +81,7 @@ export function useSurvey() {
         throw surveyError
       }
 
-      console.log(' surveys 테이블 저장 성공:', surveyResponse)
+     // console.log(' surveys 테이블 저장 성공:', surveyResponse)
 
       if (finalConsentPersonalInfo && finalPersonalInfo.name) {
         console.log(' 개인정보 저장 조건 충족 - DB 저장 시작')
@@ -94,7 +93,7 @@ export function useSurvey() {
           phone_number: finalPersonalInfo.phoneNumber,
         }
         
-        console.log('저장할 개인정보 데이터:', personalInfoData)
+
         
         const { data: personalResult, error: personalError } = await supabasePublic
           .from('personal_info')
@@ -108,7 +107,7 @@ export function useSurvey() {
           console.log(' 개인정보 저장 성공:', personalResult)
         }
       } else {
-        console.warn('⚠️ 개인정보 저장 조건 불충족')
+
         if (!finalConsentPersonalInfo) {
           console.warn('  - 개인정보 동의 안함')
         }
@@ -161,7 +160,6 @@ export function useSurvey() {
         throw new Error(`죄송합니다. ${deptName} 응답자 수가 초과되어 설문을 제출할 수 없습니다.`)
       }
 
-      console.log(`📊 최종 제출 허용: ${selectedDepartment} (${deptCount}/${deptLimit})`)
       
     } catch (error) {
       console.error('❌ 최종 제출 시 부서별 제한 확인 중 오류:', error)

@@ -114,7 +114,6 @@ export default function ConsentFormOverlay({
   }
 
   const openNameInputModal = () => {
-    console.log('성명 입력 모달 열기 - viewport 변화 방지')
     setTempName(consentData.name)
     lockBodyScroll()
     setIsNameInputExpanded(true)
@@ -131,7 +130,7 @@ export default function ConsentFormOverlay({
   }
 
   const openSignatureModal = () => {
-    console.log('서명 모달 열기 - 줌 리셋 시작')
+
     
     // 강력한 모바일 줌 리셋
     resetMobileViewport()
@@ -158,7 +157,6 @@ export default function ConsentFormOverlay({
       setTimeout(() => {
         const currentSignature = consentData[signatureKey]
         if (expandedSigRef.current && currentSignature) {
-          console.log('기존 서명 데이터 로드')
           expandedSigRef.current.fromDataURL(currentSignature)
         }
       }, 150)
@@ -168,12 +166,10 @@ export default function ConsentFormOverlay({
   // 모바일 브라우저 줌 상태를 강력하게 리셋하는 함수
   const resetMobileViewport = () => {
     try {
-      console.log('🔄 강력한 모바일 줌 리셋 시작...')
       
       // 1. 즉시 포커스 제거 (키보드 내리기)
       if (document.activeElement instanceof HTMLElement) {
         document.activeElement.blur()
-        console.log('⌨️ 키보드 포커스 제거')
       }
 
       // 2. 스크롤을 약간 조정해서 브라우저가 줌을 인식하게 함
@@ -187,8 +183,6 @@ export default function ConsentFormOverlay({
       const viewport = document.querySelector('meta[name=viewport]')
       if (viewport && viewport instanceof HTMLMetaElement) {
         const originalContent = viewport.content
-        console.log('🔧 viewport 리셋:', originalContent)
-        
         // 1단계: 줌 완전 비활성화
         viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no'
         
@@ -200,7 +194,7 @@ export default function ConsentFormOverlay({
         // 3단계: 500ms 후 원래 설정으로 복구
         setTimeout(() => {
           viewport.content = originalContent || 'width=device-width, initial-scale=1.0'
-          console.log('✅ viewport 복구 완료')
+       
         }, 500)
       }
 
@@ -290,7 +284,7 @@ export default function ConsentFormOverlay({
           style={getCoordinateStyle('name1')}
         >
           {consentData.name || (
-            <span className="text-green-600 text-xs opacity-70">성명 입력</span>
+            <span className="text-green-600 opacity-70" style={{ fontSize: '11px' }}>성명 입력</span>
           )}
         </div>
 

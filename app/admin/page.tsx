@@ -85,7 +85,7 @@ export default function AdminLoginPage() {
               required
               value={credentials.username}
               onChange={(e) => setCredentials({...credentials, username: e.target.value})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
               placeholder=""
               autoComplete=""
             />
@@ -100,7 +100,7 @@ export default function AdminLoginPage() {
               required
               value={credentials.password}
               onChange={(e) => setCredentials({...credentials, password: e.target.value})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
               placeholder=""
               autoComplete="current-password"
             />

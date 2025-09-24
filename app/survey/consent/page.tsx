@@ -39,24 +39,24 @@ export default function ConsentPage() {
   }, [])
 
   // 동의서 페이지에서 수동으로 임시 저장 데이터 로딩
-  useEffect(() => {
+  // useEffect(() => {
 
-    console.log(' [CONSENT 페이지] 상태 확인:', {
-      currentPath: window.location.pathname,
-      draft,
-      researcher: researcher ? { name: researcher.name, hasSignature: !!researcher.signature_image } : null
-    })
-    refresh() // 수동으로 데이터 로딩
-  }, [])
+  //   console.log(' [CONSENT 페이지] 상태 확인:', {
+  //     currentPath: window.location.pathname,
+  //     draft,
+  //     researcher: researcher ? { name: researcher.name, hasSignature: !!researcher.signature_image } : null
+  //   })
+  //   refresh() // 수동으로 데이터 로딩
+  // }, [])
   
   // draft와 researcher 상태 변화 모니터링
-  useEffect(() => {
-    console.log('🔍 [CONSENT 페이지] draft/researcher 상태 변화:', {
-      currentPath: window.location.pathname,
-      draft,
-      researcher: researcher ? { name: researcher.name, hasSignature: !!researcher.signature_image } : null
-    })
-  }, [draft, researcher])
+  // useEffect(() => {
+  //   console.log('🔍 [CONSENT 페이지] draft/researcher 상태 변화:', {
+  //     currentPath: window.location.pathname,
+  //     draft,
+  //     researcher: researcher ? { name: researcher.name, hasSignature: !!researcher.signature_image } : null
+  //   })
+  // }, [draft, researcher])
 
   // 이전 데이터 자동 복원 비활성화 - 사용자 요청에 따라 제거
   // useEffect(() => {
@@ -165,7 +165,7 @@ export default function ConsentPage() {
     
     // 최종 임시 저장 (설문 완료 시 PDF로 변환될 예정)
     try {
-      console.log('💾 최종 서명 데이터 임시 저장 중...')
+
       
       // 현재 한국 시간으로 동의서 날짜 설정
       const currentDate = new Date().toLocaleDateString('ko-KR', {
@@ -181,9 +181,9 @@ export default function ConsentPage() {
         consent_date: currentDate, // 현재 시간으로 설정
         researcher_id: researcher?.id
       })
-      console.log('💾 최종 서명 데이터 임시 저장 결과:', saveResult)
 
-      console.log('동의서 임시 저장 완료:', consentData)
+
+     // console.log('동의서 임시 저장 완료:', consentData)
       router.push('/survey/eligibility')
     } catch (error) {
       console.error('동의서 저장 오류:', error)

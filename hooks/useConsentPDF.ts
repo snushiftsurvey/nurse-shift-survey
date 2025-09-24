@@ -127,7 +127,7 @@ export function useConsentPDF() {
       }
 
       // jsPDF 인스턴스 생성
-      console.log('📄 jsPDF 인스턴스 생성...')
+
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'px',
@@ -135,22 +135,21 @@ export function useConsentPDF() {
       })
 
       // 첫 번째 페이지 생성
-      console.log('📄 첫 번째 페이지 생성 중...')
+
       const page1Canvas = await generateConsentPageCanvas(data, 1)
       const page1ImgData = page1Canvas.toDataURL('image/png')
       pdf.addImage(page1ImgData, 'PNG', 0, 0, 992, 1403)
 
       // 두 번째 페이지 추가
-      console.log('📄 두 번째 페이지 추가 중...')
+
       pdf.addPage()
       const page2Canvas = await generateConsentPageCanvas(data, 2)
       const page2ImgData = page2Canvas.toDataURL('image/png')
       pdf.addImage(page2ImgData, 'PNG', 0, 0, 992, 1403)
 
       // Base64로 변환
-      console.log('🔄 Base64 변환 중...')
+
       const pdfBase64 = pdf.output('datauristring')
-      console.log('✅ 통합 PDF 생성 완료, 크기:', pdfBase64.length, 'characters')
 
       return pdfBase64
 
@@ -211,14 +210,14 @@ export function useConsentPDF() {
   // 기존 개별 PDF 생성 함수 (호환성을 위해 유지)
   const generateConsentPDF = async (data: ConsentPDFData, formNumber: 1 | 2): Promise<string> => {
     try {
-      console.log(`🔧 동의서 ${formNumber} PDF 생성 시작...`, {
+      console.log(` 동의서 ${formNumber} PDF 생성 시작...`, {
         participant: data.participant_name,
         hasSignature1: !!data.consent_signature1,
         hasSignature2: !!data.consent_signature2
       })
 
       // PDF 생성을 위한 임시 컨테이너 생성
-      console.log(`📦 임시 컨테이너 생성 중...`)
+
       const tempContainer = document.createElement('div')
       tempContainer.style.position = 'absolute'
       tempContainer.style.left = '-9999px'
@@ -230,7 +229,7 @@ export function useConsentPDF() {
       console.log(`✅ 임시 컨테이너 생성 완료`)
 
       // 동의서 이미지와 데이터를 HTML로 렌더링
-      console.log(`🎨 HTML 템플릿 생성 중...`)
+
       const imageSrc = formNumber === 1 
         ? '/images/signature/agree-sig-1.png?v=20250924' 
         : '/images/signature/agree-sig-2.png?v=20250924'
@@ -240,10 +239,7 @@ export function useConsentPDF() {
         data,
         formNumber
       )
-      console.log(`✅ HTML 템플릿 생성 완료`)
-
       // html2canvas로 캡처 (최적화된 설정)
-      console.log(`📸 html2canvas로 캡처 시작...`)
       const canvas = await html2canvas(tempContainer, {
         width: 992,
         height: 1403,

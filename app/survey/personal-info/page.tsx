@@ -33,13 +33,6 @@ export default function PersonalInfoPage() {
     refresh() // 로컬 저장소에서 서명 데이터 로딩
   }, [])
 
-  // 디버깅: draft와 researcher 상태 로그
-  useEffect(() => {
-    console.log('🔍 personal-info 페이지 상태 확인:', {
-      draft,
-      researcher: researcher ? { name: researcher.name, hasSignature: !!researcher.signature_image } : null
-    })
-  }, [draft, researcher])
 
   // 설문이 시작되지 않았으면 빈 화면 표시 (리다이렉트 진행 중)
   if (!isAccessible) {

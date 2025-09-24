@@ -31,23 +31,23 @@ export function useConsentDraft() {
     } else {
       console.warn('⚠️ 세션 ID가 비어 있어 임시 데이터 로딩을 건너뜀')
     }
-    console.log('📝 세션 ID 초기화 및 자동 로딩 완료 (DB 방식):', sid)
+    // console.log('📝 세션 ID 초기화 및 자동 로딩 완료 (DB 방식):', sid)
 
     // 설문 중단 시 서명 데이터 자동 정리 이벤트 리스너 (매우 제한적)
     const handleBeforeUnload = () => {
       const currentPath = window.location.pathname
       // 매우 제한적인 정리 - 홈페이지나 설문 시작 페이지에서만
       if (currentPath === '/' || currentPath === '/survey') {
-        console.log('🧹 브라우저 종료/새로고침 감지 - 홈/설문시작 페이지에서 임시 데이터 정리')
+        // console.log('🧹 브라우저 종료/새로고침 감지 - 홈/설문시작 페이지에서 임시 데이터 정리')
         clearDraftSync(sid)
       } else {
-        console.log('📝 설문 진행 중 - 임시 데이터 보존 (경로:', currentPath, ')')
+        // console.log('📝 설문 진행 중 - 임시 데이터 보존 (경로:', currentPath, ')')
       }
     }
 
     const handlePageHide = () => {
       // 페이지 숨김 시에는 정리하지 않음 (너무 공격적)
-      console.log('📝 페이지 숨김 감지 - 임시 데이터 보존 (경로:', window.location.pathname, ')')
+      // console.log('📝 페이지 숨김 감지 - 임시 데이터 보존 (경로:', window.location.pathname, ')')
     }
 
     // 이벤트 리스너 등록
@@ -69,7 +69,7 @@ export function useConsentDraft() {
         setDraft(null)
         return
       }
-      console.log('🔄 surveys 테이블에서 임시 데이터 로딩 시도 (406 에러 완전 회피):', sid)
+      // console.log('🔄 surveys 테이블에서 임시 데이터 로딩 시도 (406 에러 완전 회피):', sid)
       
       const { data, error } = await supabase
         .from('surveys')
@@ -80,7 +80,7 @@ export function useConsentDraft() {
 
       if (error) {
         if (error.code === 'PGRST116') {
-          console.log('📄 새로운 세션 - 기존 임시 데이터 없음')
+          // console.log('📄 새로운 세션 - 기존 임시 데이터 없음')
           setDraft(null)
           return
         } else {
@@ -91,20 +91,20 @@ export function useConsentDraft() {
       }
 
       if (!data) {
-        console.log('ℹ️ 임시 데이터 없음 (0행)')
+        // console.log('ℹ️ 임시 데이터 없음 (0행)')
         setDraft(null)
         return
       }
 
       // JSON 데이터에서 draft 정보 추출
       const draftData = data.consent_draft_data as any
-      console.log('✅ surveys 테이블에서 임시 저장 데이터 로딩 완료:', {
-        survey_id: data.id,
-        session_id: draftData?.session_id,
-        consent_name: draftData?.consent_name,
-        hasSignature1: !!draftData?.consent_signature1,
-        hasSignature2: !!draftData?.consent_signature2
-      })
+      // console.log('✅ surveys 테이블에서 임시 저장 데이터 로딩 완료:', {
+      //   survey_id: data.id,
+      //   session_id: draftData?.session_id,
+      //   consent_name: draftData?.consent_name,
+      //   hasSignature1: !!draftData?.consent_signature1,
+      //   hasSignature2: !!draftData?.consent_signature2
+      // })
       
       // ConsentDraft 형태로 변환
       const convertedDraft = {
@@ -130,7 +130,7 @@ export function useConsentDraft() {
 
     try {
       setLoading(true)
-      console.log('💾 surveys 테이블에 임시 저장 시도 (406 에러 완전 회피):', { sessionId, draftData })
+      // console.log('💾 surveys 테이블에 임시 저장 시도 (406 에러 완전 회피):', { sessionId, draftData })
       
       const draftPayload = {
         session_id: sessionId,
@@ -158,7 +158,7 @@ export function useConsentDraft() {
       // 기존 draft가 있으면 업데이트, 없으면 새로 생성
       let result
       if (draft?.id) {
-        console.log('🔄 기존 draft 업데이트:', draft.id)
+        // console.log('🔄 기존 draft 업데이트:', draft.id)
         const { data, error } = await supabase
           .from('surveys')
           .update({
@@ -171,7 +171,7 @@ export function useConsentDraft() {
           .single()
         result = { data, error }
       } else {
-        console.log('🆕 새로운 draft 생성')
+        // console.log('🆕 새로운 draft 생성')
         const { data, error } = await supabase
           .from('surveys')
           .insert(surveyPayload)
@@ -185,7 +185,7 @@ export function useConsentDraft() {
         return { success: false, error: result.error.message }
       }
       
-      console.log('✅ surveys 테이블 저장 완료:', result.data)
+      // console.log('✅ surveys 테이블 저장 완료:', result.data)
       
       // ConsentDraft 형태로 변환해서 상태 업데이트
       const convertedDraft = {
@@ -217,7 +217,7 @@ export function useConsentDraft() {
           .delete()
           .eq('id', draft.id)
           .eq('is_draft', true)
-        console.log('🗑️ surveys 테이블 임시 데이터 삭제 완료:', draft.id)
+        // console.log('🗑️ surveys 테이블 임시 데이터 삭제 완료:', draft.id)
       } else if (sessionId) {
         // ID가 없으면 session_id로 찾아서 삭제
         await supabase
@@ -225,7 +225,7 @@ export function useConsentDraft() {
           .delete()
           .eq('consent_draft_data->>session_id', sessionId)
           .eq('is_draft', true)
-        console.log('🗑️ surveys 테이블 임시 데이터 삭제 완료 (session_id 방식):', sessionId)
+        // console.log('🗑️ surveys 테이블 임시 데이터 삭제 완료 (session_id 방식):', sessionId)
       }
       
       setDraft(null)
@@ -240,7 +240,7 @@ export function useConsentDraft() {
     try {
       // 브라우저 종료 시에는 DB 요청이 제한적이므로 sessionStorage만 정리
       sessionStorage.removeItem('consent_session_id')
-      console.log('🧹 브라우저 종료 시 세션 정리 완료:', sid)
+      // console.log('🧹 브라우저 종료 시 세션 정리 완료:', sid)
       
       // 상태 즉시 초기화
       setDraft(null)
@@ -261,7 +261,7 @@ export function useConsentDraft() {
     setSessionId(newSid)
     setDraft(null)
     
-    console.log('🆕 새로운 설문 세션 시작 (surveys 테이블 활용):', newSid)
+    // console.log('🆕 새로운 설문 세션 시작 (surveys 테이블 활용):', newSid)
   }
 
   return {
