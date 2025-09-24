@@ -7,6 +7,7 @@ interface ConsentPDFData {
   survey_id: string
   participant_name: string
   participant_phone?: string
+  participant_birth_date?: string // 생년월일 필드 추가
   consent_date: string
   researcher_name: string
   researcher_signature: string
@@ -40,45 +41,45 @@ export function useConsentPDF() {
         ])
       }
 
-      // PDF 생성 (타임아웃 적용)
-      console.log('📄 PDF 생성 중... (최대 20초)')
-      const [tempPDF1, tempPDF2] = await withTimeout(
-        Promise.all([
-          generateConsentPDF(data, 1),
-          generateConsentPDF(data, 2)
-        ]), 
+      // PDF 생성 (2페이지로 합침, 타임아웃 적용)
+      console.log('📄 통합 PDF 생성 중... (최대 20초)')
+      const combinedPDF = await withTimeout(
+        generateCombinedConsentPDF(data), 
         20000 // 20초
       )
-      console.log('✅ PDF 생성 완료')
+      console.log('✅ 통합 PDF 생성 완료')
 
       // DB 저장 (타임아웃 적용)
       console.log('💾 DB 저장 중... (최대 10초)')
-      const { data: result, error } = await withTimeout(
-        supabase
-          .from('consent_pdfs')
-          .insert({
-            survey_id: data.survey_id,
-            participant_name: data.participant_name,
-            participant_phone: data.participant_phone,
-            consent_date: data.consent_date,
-            researcher_name: data.researcher_name,
-            researcher_signature: data.researcher_signature,
-            researcher_date: data.researcher_date,
-            consent_signature1: data.consent_signature1,
-            consent_signature2: data.consent_signature2,
-            consent_form1_pdf: tempPDF1,
-            consent_form2_pdf: tempPDF2
-          })
-          .select('id')
-          .single(),
+      const saveResult = await withTimeout(
+        Promise.resolve(
+          supabase
+            .from('consent_pdfs')
+            .insert({
+              survey_id: data.survey_id,
+              participant_name: data.participant_name,
+              participant_phone: data.participant_phone,
+              consent_date: data.consent_date,
+              researcher_name: data.researcher_name,
+              researcher_signature: data.researcher_signature,
+              researcher_date: data.researcher_date,
+              consent_signature1: data.consent_signature1,
+              consent_signature2: data.consent_signature2,
+              consent_form_pdf: combinedPDF
+            })
+            .select('id')
+            .single()
+        ),
         10000 // 10초
       )
+      
+      const { data: result, error } = (saveResult as any)
 
       if (error) {
         throw new Error(`저장 실패: ${error.message}`)
       }
 
-      console.log('✅ 동의서 PDF 생성 및 저장 완료')
+      console.log(' 동의서 PDF 생성 및 저장 완료')
       return { success: true, data: result }
 
     } catch (error) {
@@ -98,7 +99,116 @@ export function useConsentPDF() {
     }
   }
 
-  // 실제 PDF 생성 함수
+  // 2페이지를 하나의 PDF로 합치는 함수
+  const generateCombinedConsentPDF = async (data: ConsentPDFData): Promise<string> => {
+    try {
+      console.log('🔧 통합 동의서 PDF 생성 시작 (2페이지)...', {
+        participant: data.participant_name,
+        hasSignature1: !!data.consent_signature1,
+        hasSignature2: !!data.consent_signature2,
+        signature1Length: data.consent_signature1?.length || 0,
+        signature2Length: data.consent_signature2?.length || 0,
+        hasResearcherSignature: !!data.researcher_signature
+      })
+
+      // 서명 데이터 검증
+      if (!data.consent_signature1 || !data.consent_signature2) {
+        throw new Error(`서명 데이터 누락: signature1=${!!data.consent_signature1}, signature2=${!!data.consent_signature2}`)
+      }
+
+      if (!data.researcher_signature) {
+        throw new Error('연구원 서명이 누락되었습니다.')
+      }
+
+      // 연구원 서명 데이터 유효성 검증
+      if (data.researcher_signature.length < 200 || 
+          data.researcher_signature === 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/afh/8kAAAAASUVORK5CYII=') {
+        throw new Error('연구원 서명 데이터가 올바르지 않습니다. (투명/빈 이미지 또는 손상된 데이터)')
+      }
+
+      // jsPDF 인스턴스 생성
+      console.log('📄 jsPDF 인스턴스 생성...')
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'px',
+        format: [992, 1403]
+      })
+
+      // 첫 번째 페이지 생성
+      console.log('📄 첫 번째 페이지 생성 중...')
+      const page1Canvas = await generateConsentPageCanvas(data, 1)
+      const page1ImgData = page1Canvas.toDataURL('image/png')
+      pdf.addImage(page1ImgData, 'PNG', 0, 0, 992, 1403)
+
+      // 두 번째 페이지 추가
+      console.log('📄 두 번째 페이지 추가 중...')
+      pdf.addPage()
+      const page2Canvas = await generateConsentPageCanvas(data, 2)
+      const page2ImgData = page2Canvas.toDataURL('image/png')
+      pdf.addImage(page2ImgData, 'PNG', 0, 0, 992, 1403)
+
+      // Base64로 변환
+      console.log('🔄 Base64 변환 중...')
+      const pdfBase64 = pdf.output('datauristring')
+      console.log('✅ 통합 PDF 생성 완료, 크기:', pdfBase64.length, 'characters')
+
+      return pdfBase64
+
+    } catch (error) {
+      console.error('❌ 통합 PDF 생성 오류:', error)
+      throw error
+    }
+  }
+
+  // 개별 동의서 페이지를 캔버스로 생성하는 함수
+  const generateConsentPageCanvas = async (data: ConsentPDFData, formNumber: 1 | 2): Promise<HTMLCanvasElement> => {
+    try {
+
+
+      // PDF 생성을 위한 임시 컨테이너 생성
+      const tempContainer = document.createElement('div')
+      tempContainer.style.position = 'absolute'
+      tempContainer.style.left = '-9999px'
+      tempContainer.style.top = '-9999px'
+      tempContainer.style.width = '992px'
+      tempContainer.style.height = '1403px'
+      tempContainer.style.backgroundColor = 'white'
+      document.body.appendChild(tempContainer)
+
+      // 동의서 이미지와 데이터를 HTML로 렌더링
+      const imageSrc = formNumber === 1 
+        ? '/images/signature/agree-sig-1.png?v=20250924' 
+        : '/images/signature/agree-sig-2.png?v=20250924'
+      
+      tempContainer.innerHTML = await createConsentHTML(
+        imageSrc,
+        data,
+        formNumber
+      )
+
+      // html2canvas로 캡처 (최적화된 설정)
+      const canvas = await html2canvas(tempContainer, {
+        width: 992,
+        height: 1403,
+        scale: 1,
+        useCORS: true,
+        allowTaint: false,
+        backgroundColor: 'white',
+        logging: false
+      })
+      
+      // 임시 컨테이너 제거
+      document.body.removeChild(tempContainer)
+
+      return canvas
+
+    } catch (error) {
+      console.error(`❌ 캔버스 생성 오류 (동의서 ${formNumber}):`, error)
+      throw error
+    }
+  }
+
+  // 기존 개별 PDF 생성 함수 (호환성을 위해 유지)
   const generateConsentPDF = async (data: ConsentPDFData, formNumber: 1 | 2): Promise<string> => {
     try {
       console.log(`🔧 동의서 ${formNumber} PDF 생성 시작...`, {
@@ -122,8 +232,8 @@ export function useConsentPDF() {
       // 동의서 이미지와 데이터를 HTML로 렌더링
       console.log(`🎨 HTML 템플릿 생성 중...`)
       const imageSrc = formNumber === 1 
-        ? '/images/signature/agree-sig-1.png' 
-        : '/images/signature/agree-sig-2.png'
+        ? '/images/signature/agree-sig-1.png?v=20250924' 
+        : '/images/signature/agree-sig-2.png?v=20250924'
       
       tempContainer.innerHTML = await createConsentHTML(
         imageSrc,
@@ -154,8 +264,8 @@ export function useConsentPDF() {
       })
 
       // JPEG로 변환해서 파일 크기 줄이기
-      const imgData = canvas.toDataURL('image/jpeg', 0.8) // 80% 품질
-      pdf.addImage(imgData, 'JPEG', 0, 0, 992, 1403)
+      const imgData = canvas.toDataURL('image/png')
+      pdf.addImage(imgData, 'PNG', 0, 0, 992, 1403)
 
       // Base64로 변환
       console.log(`🔄 Base64 변환 중...`)
@@ -192,12 +302,12 @@ export function useConsentPDF() {
     }
 
     const COORDINATES_SIG2 = {
-      name1: { left: 139, top: 605, right: 340, bottom: 652 },
-      signature1: { left: 390, top: 605, right: 590, bottom: 652 },
-      date1: { left: 638, top: 621, right: 839, bottom: 651 },
-      name2: { left: 137, top: 689, right: 337, bottom: 730 },
-      signature2: { left: 392, top: 689, right: 590, bottom: 730 },
-      date2: { left: 639, top: 700, right: 838, bottom: 731 }
+      name1: { left: 139, top: 588, right: 340, bottom: 635 },
+      signature1: { left: 390, top: 588, right: 590, bottom: 635 },
+      date1: { left: 638, top: 604, right: 839, bottom: 634 },
+      name2: { left: 137, top: 672, right: 337, bottom: 713 },
+      signature2: { left: 392, top: 672, right: 590, bottom: 713 },
+      date2: { left: 639, top: 683, right: 838, bottom: 714 }
     }
 
     const coordinates = formNumber === 1 ? COORDINATES_SIG1 : COORDINATES_SIG2

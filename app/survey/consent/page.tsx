@@ -15,11 +15,7 @@ export default function ConsentPage() {
     name2: '',       // 두 번째 동의서용 성명  
     signature1: '',  // agree-sig-1용 서명
     signature2: '',  // agree-sig-2용 서명
-    date: new Date().toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: '2-digit', 
-      day: '2-digit'
-    }).replace(/\s/g, '').replace(/\.$/, ''),
+    date: '', // 현재 시간으로 동적 설정
     agreed: null as boolean | null
   })
   const [isVisible, setIsVisible] = useState(false)
@@ -30,7 +26,37 @@ export default function ConsentPage() {
   
   // 연구원 정보 및 동의서 임시 저장 훅
   const { researcher, loading: researcherLoading } = useResearcher()
-  const { draft, saveDraft, loading: draftLoading, startNewSession } = useConsentDraft()
+  const { draft, saveDraft, loading: draftLoading, startNewSession, clearDraft, refresh } = useConsentDraft()
+
+  // 오늘 날짜를 YYYY/MM/DD 형식으로 초기 설정 (페이지 표시용)
+  useEffect(() => {
+    const today = new Date()
+    const yyyy = today.getFullYear()
+    const mm = String(today.getMonth() + 1).padStart(2, '0')
+    const dd = String(today.getDate()).padStart(2, '0')
+    const displayDate = `${yyyy}.${mm}.${dd}`
+    setConsentData(prev => ({ ...prev, date: displayDate }))
+  }, [])
+
+  // 동의서 페이지에서 수동으로 임시 저장 데이터 로딩
+  useEffect(() => {
+
+    console.log(' [CONSENT 페이지] 상태 확인:', {
+      currentPath: window.location.pathname,
+      draft,
+      researcher: researcher ? { name: researcher.name, hasSignature: !!researcher.signature_image } : null
+    })
+    refresh() // 수동으로 데이터 로딩
+  }, [])
+  
+  // draft와 researcher 상태 변화 모니터링
+  useEffect(() => {
+    console.log('🔍 [CONSENT 페이지] draft/researcher 상태 변화:', {
+      currentPath: window.location.pathname,
+      draft,
+      researcher: researcher ? { name: researcher.name, hasSignature: !!researcher.signature_image } : null
+    })
+  }, [draft, researcher])
 
   // 이전 데이터 자동 복원 비활성화 - 사용자 요청에 따라 제거
   // useEffect(() => {
@@ -45,6 +71,36 @@ export default function ConsentPage() {
   //     }))
   //   }
   // }, [draft, draftLoading])
+
+  // 설문 중단 시 서명 데이터 정리 (컴포넌트 언마운트 시에만)
+  useEffect(() => {
+    // 컴포넌트 언마운트 시에만 실행되는 cleanup 함수
+    return () => {
+      // 정상적인 흐름인지 확인
+      const currentPath = window.location.pathname
+      const hasSignatureData = consentData.signature1 || consentData.signature2
+      
+      // personal-info나 complete로 정상 진행하는 경우는 정리하지 않음
+      if (currentPath === '/survey/personal-info' || 
+          currentPath === '/survey/complete' ||
+          currentPath === '/survey/consent') {
+        console.log('📝 정상적인 설문 진행 - 서명 데이터 유지')
+        return
+      }
+      
+      // 설문 제출 중인 경우도 정리하지 않음
+      if ((window as any).isSubmittingSurvey) {
+        console.log('📝 설문 제출 중 - 서명 데이터 유지')
+        return
+      }
+      
+      // 비정상 이탈 시에만 정리
+      if (hasSignatureData) {
+        console.log('🧹 동의서 페이지에서 비정상 이탈 - 서명 데이터 정리')
+        clearDraft()
+      }
+    }
+  }, []) // dependency 제거하여 컴포넌트 언마운트 시에만 실행
 
   // 스크롤 애니메이션을 위한 Intersection Observer
   useEffect(() => {
@@ -109,13 +165,23 @@ export default function ConsentPage() {
     
     // 최종 임시 저장 (설문 완료 시 PDF로 변환될 예정)
     try {
-      await saveDraft({
+      console.log('💾 최종 서명 데이터 임시 저장 중...')
+      
+      // 현재 한국 시간으로 동의서 날짜 설정
+      const currentDate = new Date().toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: '2-digit', 
+        day: '2-digit'
+      }).replace(/\s/g, '').replace(/\.$/, '')
+      
+      const saveResult = await saveDraft({
         consent_name: consentData.name1, // 첫 번째 동의서 이름 사용
         consent_signature1: consentData.signature1,
         consent_signature2: consentData.signature2,
-        consent_date: consentData.date,
+        consent_date: currentDate, // 현재 시간으로 설정
         researcher_id: researcher?.id
       })
+      console.log('💾 최종 서명 데이터 임시 저장 결과:', saveResult)
 
       console.log('동의서 임시 저장 완료:', consentData)
       router.push('/survey/eligibility')
@@ -180,7 +246,7 @@ export default function ConsentPage() {
             <div className="space-y-6 mb-8">
               <div className="border border-gray-200 rounded-lg overflow-hidden">
                 <Image
-                  src="/images/signature/info-1.png"
+                  src="/images/signature/info-1.png?20250924"
                   alt="연구참여자용 설명문 1"
                   width={800}
                   height={1000}
@@ -191,7 +257,7 @@ export default function ConsentPage() {
               
               <div className="border border-gray-200 rounded-lg overflow-hidden">
                 <Image
-                  src="/images/signature/info-2.png"
+                  src="/images/signature/info-2.png?20250924"
                   alt="연구참여자용 설명문 2"
                   width={800}
                   height={1000}
@@ -211,7 +277,7 @@ export default function ConsentPage() {
             }}
             onNameChange={handleName1Change}
             onSignatureChange={handleSignature1Change}
-            imageSrc="/images/signature/agree-sig-1.png"
+            imageSrc="/images/signature/agree-sig-1.png?0924?2025-0924"
             signatureKey="signature1"
             title="첫 번째 동의서"
             researcherData={researcher ? {
@@ -236,7 +302,7 @@ export default function ConsentPage() {
             }}
             onNameChange={handleName2Change}
             onSignatureChange={handleSignature2Change}
-            imageSrc="/images/signature/agree-sig-2.png"
+            imageSrc="/images/signature/agree-sig-2.png?v=20250924"
             signatureKey="signature2"
             title="두 번째 동의서"
             researcherData={researcher ? {
@@ -296,42 +362,6 @@ export default function ConsentPage() {
               </label>
             </div>
 
-            {/* 작성 현황 표시 */}
-            {consentData.agreed === true && (
-              <div className="mt-4 p-3 bg-white border border-gray-200 rounded-lg">
-                <h4 className="text-sm font-medium text-gray-800 mb-2">작성 현황</h4>
-                <div className="space-y-1 text-xs">
-                  <div className="flex items-center">
-                    <div className={`w-2 h-2 rounded-full mr-2 ${consentData.name1.trim() ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                    <span className={consentData.name1.trim() ? 'text-green-700' : 'text-gray-500'}>
-                      첫 번째 동의서 성명: {consentData.name1.trim() || '미작성'}
-                    </span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className={`w-2 h-2 rounded-full mr-2 ${consentData.name2.trim() ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                    <span className={consentData.name2.trim() ? 'text-green-700' : 'text-gray-500'}>
-                      두 번째 동의서 성명: {consentData.name2.trim() || '미작성'}
-                    </span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className={`w-2 h-2 rounded-full mr-2 ${consentData.signature1.trim() ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                    <span className={consentData.signature1.trim() ? 'text-green-700' : 'text-gray-500'}>
-                      첫 번째 서명: {consentData.signature1.trim() ? '완료' : '미완료'}
-                    </span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className={`w-2 h-2 rounded-full mr-2 ${consentData.signature2.trim() ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                    <span className={consentData.signature2.trim() ? 'text-green-700' : 'text-gray-500'}>
-                      두 번째 서명: {consentData.signature2.trim() ? '완료' : '미완료'}
-                    </span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-2 h-2 rounded-full mr-2 bg-green-500"></div>
-                    <span className="text-green-700">날짜: {consentData.date}</span>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
           <div className="flex flex-row justify-between items-center gap-4">

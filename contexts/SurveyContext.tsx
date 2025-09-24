@@ -55,7 +55,7 @@ function surveyReducer(state: SurveyState, action: SurveyAction): SurveyState {
       return initialState
     case 'FORCE_CLEAR_ALL':
       // 불특정 다수 사용을 위한 완전 초기화
-      console.log('🔒 FORCE_CLEAR_ALL: 모든 데이터 완전 초기화')
+      //console.log('FORCE_CLEAR_ALL: 모든 데이터 완전 초기화')
       return {
         ...initialState,
         currentStep: '/',
@@ -78,7 +78,7 @@ export function SurveyProvider({ children }: { children: React.ReactNode }) {
 
   // 🔒 불특정 다수 사용을 위한 완전 초기화
   useEffect(() => {
-    console.log('🔒 SurveyProvider 마운트 - 완전 초기화 실행')
+    console.log('SurveyProvider 마운트 - 완전 초기화 실행')
     
     // 1. 강제 초기화
     dispatch({ type: 'FORCE_CLEAR_ALL' })

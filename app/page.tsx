@@ -13,7 +13,7 @@ export default function HomePage() {
   const { forceClearAll, startSurvey } = useSurvey()
 
   const handleStartSurvey = async () => {
-    console.log('🔒 설문 시작 - 전체 응답자 수만 확인')
+
     
     try {
       setIsNavigating(true)
@@ -37,8 +37,8 @@ export default function HomePage() {
         return
       }
       
-      console.log(`📊 전체 제한 확인 통과: ${totalCount}/${totalLimit}`)
-      console.log('🔒 설문 시작 - 모든 데이터 완전 초기화')
+     // console.log(` 전체 제한 확인 통과: ${totalCount}/${totalLimit}`)
+     // console.log('설문 시작 - 모든 데이터 완전 초기화')
       
       // 강제 전체 초기화
       forceClearAll()

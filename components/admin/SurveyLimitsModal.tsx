@@ -134,7 +134,7 @@ export default function SurveyLimitsModal({ isOpen, onClose, onUpdate }: SurveyL
                         onChange={(e) => updateLimitValue(limit.setting_name, parseInt(e.target.value) || 0)}
                         min="0"
                         max="1000"
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900 bg-white"
                       />
                       <span className="text-sm text-gray-500">명</span>
                     </div>

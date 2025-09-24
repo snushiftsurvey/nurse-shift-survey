@@ -103,12 +103,12 @@ export default function WorkScheduleViewer({
         {/* 응답자 정보 */}
         <div className="mb-4">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">응답자 정보</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-            <div><span className="font-medium">ID:</span> {surveyInfo.id.substring(0, 8)}...</div>
-            <div><span className="font-medium">성별/연령:</span> {surveyInfo.gender} / {surveyInfo.age}세</div>
-            <div><span className="font-medium">부서:</span> {surveyInfo.department}</div>
-            <div><span className="font-medium">의료기관:</span> {surveyInfo.institutionType}</div>
-            <div><span className="font-medium">지역:</span> {surveyInfo.location}</div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-gray-900">
+            <div><span className="font-medium text-gray-700">ID:</span> {surveyInfo.id.substring(0, 8)}...</div>
+            <div><span className="font-medium text-gray-700">성별/연령:</span> {surveyInfo.gender} / {surveyInfo.age}세</div>
+            <div><span className="font-medium text-gray-700">부서:</span> {surveyInfo.department}</div>
+            <div><span className="font-medium text-gray-700">의료기관:</span> {surveyInfo.institutionType}</div>
+            <div><span className="font-medium text-gray-700">지역:</span> {surveyInfo.location}</div>
           </div>
         </div>
 
@@ -116,14 +116,14 @@ export default function WorkScheduleViewer({
         {personalInfo && (
           <div className="mb-4 border-t border-gray-300 pt-3">
             <h4 className="text-md font-semibold text-gray-900 mb-2">개인정보</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-              <div><span className="font-medium">성명:</span> {personalInfo.name}</div>
-              <div><span className="font-medium">생년월일:</span> {
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-gray-900">
+              <div><span className="font-medium text-gray-700">성명:</span> {personalInfo.name}</div>
+              <div><span className="font-medium text-gray-700">생년월일:</span> {
                 personalInfo.birth_date ? 
                   `${personalInfo.birth_date.substring(0, 4)}.${personalInfo.birth_date.substring(4, 6)}.${personalInfo.birth_date.substring(6, 8)}` : 
                   '-'
               }</div>
-              <div><span className="font-medium">휴대전화:</span> {
+              <div><span className="font-medium text-gray-700">휴대전화:</span> {
                 personalInfo.phone_number ? 
                   `${personalInfo.phone_number.substring(0, 3)}-${personalInfo.phone_number.substring(3, 7)}-${personalInfo.phone_number.substring(7)}` : 
                   '-'

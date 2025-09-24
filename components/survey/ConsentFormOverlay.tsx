@@ -40,6 +40,11 @@ export default function ConsentFormOverlay({
   const containerRef = useRef<HTMLDivElement>(null)
   const [containerWidth, setContainerWidth] = useState(0)
   const [isSignatureExpanded, setIsSignatureExpanded] = useState(false)
+  const lockedScrollYRef = useRef<number | null>(null)
+  const getViewportWidth = () => (typeof window !== 'undefined' ? (window.visualViewport?.width || window.innerWidth) : 360)
+  const [overlayOffset, setOverlayOffset] = useState({ left: 0, top: 0 })
+  const [isNameInputExpanded, setIsNameInputExpanded] = useState(false)
+  const [tempName, setTempName] = useState('')
 
   useEffect(() => {
     const updateWidth = () => {
@@ -83,18 +88,144 @@ export default function ConsentFormOverlay({
     }
   }
 
+  const lockBodyScroll = () => {
+    try {
+      const y = window.scrollY || 0
+      lockedScrollYRef.current = y
+      document.body.style.position = 'fixed'
+      document.body.style.top = `-${y}px`
+      document.body.style.left = '0'
+      document.body.style.right = '0'
+      document.body.style.width = '100%'
+    } catch {}
+  }
+
+  const unlockBodyScroll = () => {
+    try {
+      const y = lockedScrollYRef.current ?? 0
+      document.body.style.position = ''
+      document.body.style.top = ''
+      document.body.style.left = ''
+      document.body.style.right = ''
+      document.body.style.width = ''
+      lockedScrollYRef.current = null
+      window.scrollTo({ top: y, behavior: 'auto' })
+    } catch {}
+  }
+
+  const openNameInputModal = () => {
+    console.log('성명 입력 모달 열기 - viewport 변화 방지')
+    setTempName(consentData.name)
+    lockBodyScroll()
+    setIsNameInputExpanded(true)
+  }
+
+  const closeNameInputModal = () => {
+    setIsNameInputExpanded(false)
+    unlockBodyScroll()
+  }
+
+  const confirmNameInput = () => {
+    onNameChange(tempName)
+    closeNameInputModal()
+  }
+
   const openSignatureModal = () => {
-    setIsSignatureExpanded(true)
+    console.log('서명 모달 열기 - 줌 리셋 시작')
+    
+    // 강력한 모바일 줌 리셋
+    resetMobileViewport()
+    
+    // 충분한 시간을 두고 모달 열기
     setTimeout(() => {
-      const currentSignature = consentData[signatureKey]
-      if (expandedSigRef.current && currentSignature) {
-        expandedSigRef.current.fromDataURL(currentSignature)
+       
+      lockBodyScroll()
+      // iOS 사파리 등에서 키보드/줌으로 인해 layout/visual viewport가 어긋나는 문제를 보정
+      const vv = window.visualViewport
+      const syncOffset = () => {
+        if (!window.visualViewport) return
+        setOverlayOffset({
+          left: Math.max(0, Math.floor(window.visualViewport.offsetLeft || 0)),
+          top: Math.max(0, Math.floor(window.visualViewport.offsetTop || 0))
+        })
       }
-    }, 100)
+      syncOffset()
+      vv?.addEventListener('resize', syncOffset)
+      vv?.addEventListener('scroll', syncOffset)
+      setIsSignatureExpanded(true)
+      
+      // 서명 데이터 로드
+      setTimeout(() => {
+        const currentSignature = consentData[signatureKey]
+        if (expandedSigRef.current && currentSignature) {
+          console.log('기존 서명 데이터 로드')
+          expandedSigRef.current.fromDataURL(currentSignature)
+        }
+      }, 150)
+    }, 200) // 줌 리셋을 위한 충분한 대기 시간
+  }
+
+  // 모바일 브라우저 줌 상태를 강력하게 리셋하는 함수
+  const resetMobileViewport = () => {
+    try {
+      console.log('🔄 강력한 모바일 줌 리셋 시작...')
+      
+      // 1. 즉시 포커스 제거 (키보드 내리기)
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur()
+        console.log('⌨️ 키보드 포커스 제거')
+      }
+
+      // 2. 스크롤을 약간 조정해서 브라우저가 줌을 인식하게 함
+      const currentY = window.scrollY
+      window.scrollTo({ top: currentY - 1, behavior: 'auto' })
+      setTimeout(() => {
+        window.scrollTo({ top: currentY, behavior: 'auto' })
+      }, 10)
+
+      // 3. viewport 메타태그 강제 리셋 (여러 단계로)
+      const viewport = document.querySelector('meta[name=viewport]')
+      if (viewport && viewport instanceof HTMLMetaElement) {
+        const originalContent = viewport.content
+        console.log('🔧 viewport 리셋:', originalContent)
+        
+        // 1단계: 줌 완전 비활성화
+        viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no'
+        
+        // 2단계: 100ms 후 다시 설정
+        setTimeout(() => {
+          viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no'
+        }, 100)
+        
+        // 3단계: 500ms 후 원래 설정으로 복구
+        setTimeout(() => {
+          viewport.content = originalContent || 'width=device-width, initial-scale=1.0'
+          console.log('✅ viewport 복구 완료')
+        }, 500)
+      }
+
+      // 4. 추가로 body 스타일 임시 조작
+      const originalTransform = document.body.style.transform
+      document.body.style.transform = 'scale(1)'
+      setTimeout(() => {
+        document.body.style.transform = originalTransform
+      }, 200)
+
+      console.log('📱 강력한 줌 리셋 완료')
+    } catch (error) {
+      console.error('❌ 줌 리셋 중 오류:', error)
+    }
   }
 
   const closeSignatureModal = () => {
     setIsSignatureExpanded(false)
+    unlockBodyScroll()
+    const vv = window.visualViewport
+    const noop = () => {}
+    // 타입가드 회피용 no-op 등록 후 제거
+    vv?.removeEventListener('resize', noop as any)
+    vv?.removeEventListener('scroll', noop as any)
+    setOverlayOffset({ left: 0, top: 0 })
   }
 
   // 이미지맵 좌표를 기반으로 정확한 위치 계산
@@ -103,7 +234,7 @@ export default function ConsentFormOverlay({
   
   // 이미지맵 좌표 정의
   const COORDINATES_SIG1 = {
-    // agree-sig-1.png용 좌표 (서명칸 높이 기준으로 성명칸 높이 조정)
+    // agree-sig-1.png?0924용 좌표 (서명칸 높이 기준으로 성명칸 높이 조정)
     name1: { left: 139, top: 614, right: 340, bottom: 661 },    // 성명1 (47px 높이)
     signature1: { left: 390, top: 614, right: 590, bottom: 661 }, // 서명1 (47px 높이)
     date1: { left: 638, top: 630, right: 839, bottom: 660 },    // 날짜1
@@ -113,13 +244,13 @@ export default function ConsentFormOverlay({
   }
   
   const COORDINATES_SIG2 = {
-    // agree-sig-2.png용 좌표 (서명칸 높이 기준으로 성명칸 높이 조정)
-    name1: { left: 139, top: 605, right: 340, bottom: 652 },    // 성명1 (47px 높이)
-    signature1: { left: 390, top: 605, right: 590, bottom: 652 }, // 서명1 (47px 높이)
-    date1: { left: 638, top: 621, right: 839, bottom: 651 },    // 날짜1
-    name2: { left: 137, top: 689, right: 337, bottom: 730 },    // 성명2 (41px 높이)
-    signature2: { left: 392, top: 689, right: 590, bottom: 730 }, // 서명2 (41px 높이)
-    date2: { left: 639, top: 700, right: 838, bottom: 731 }     // 날짜2
+    // agree-sig-2.png용 좌표 (서명칸 높이 기준으로 성명칸 높이 조정) - 17px 위로 이동
+    name1: { left: 139, top: 588, right: 340, bottom: 635 },    // 성명1 (47px 높이)
+    signature1: { left: 390, top: 588, right: 590, bottom: 635 }, // 서명1 (47px 높이)
+    date1: { left: 638, top: 604, right: 839, bottom: 634 },    // 날짜1
+    name2: { left: 137, top: 672, right: 337, bottom: 713 },    // 성명2 (41px 높이)
+    signature2: { left: 392, top: 672, right: 590, bottom: 713 }, // 서명2 (41px 높이)
+    date2: { left: 639, top: 683, right: 838, bottom: 714 }     // 날짜2
   }
   
   // 사용할 좌표 선택
@@ -150,17 +281,18 @@ export default function ConsentFormOverlay({
           priority
         />
         
-        {/* 성명1 입력 필드 - 첫 번째 줄 성명란 */}
-        <input
-          type="text"
-          value={consentData.name}
-          onChange={(e) => onNameChange(e.target.value)}
-          placeholder=""
-          className={`border-1 border-gray-400 text-black font-medium focus:outline-none focus:ring-1 focus:ring-green-500 px-1 text-center flex items-center rounded-sm ${
+        {/* 성명1 입력 필드 - 모바일 viewport 변화 방지를 위해 클릭 모달 방식 */}
+        <div
+          onClick={openNameInputModal}
+          className={`border-1 border-gray-400 text-black font-medium px-1 text-center flex items-center justify-center rounded-sm cursor-pointer hover:bg-green-50 hover:bg-opacity-40 transition-colors ${
             consentData.name.trim() ? 'bg-transparent' : 'bg-green-50 bg-opacity-60 animate-pulse-input'
           }`}
           style={getCoordinateStyle('name1')}
-        />
+        >
+          {consentData.name || (
+            <span className="text-green-600 text-xs opacity-70">성명 입력</span>
+          )}
+        </div>
 
         {/* 서명1 캔버스 - 첫 번째 줄 서명란 */}
         <div 
@@ -219,8 +351,29 @@ export default function ConsentFormOverlay({
       
       {/* 확대된 서명 모달 */}
       {isSignatureExpanded && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-4xl max-h-[90vh] overflow-auto">
+        <div 
+          className="fixed inset-0 bg-white z-50 p-4 sm:p-8" 
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            width: '100vw',
+            height: '100dvh',
+            transform: `translate(${overlayOffset.left}px, ${overlayOffset.top}px)`,
+            overscrollBehavior: 'contain' as any
+          }}
+        >
+           <div 
+            className="bg-white rounded-lg p-3 sm:p-6 overflow-auto flex flex-col"
+             style={{
+              width: 'min(90vw, 600px)',
+              maxWidth: '600px',
+               maxHeight: '70vh',
+               margin: 'auto',
+               transform: 'scale(1)', // 강제 스케일 고정
+               transformOrigin: 'center center'
+             }}
+           >
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-medium text-gray-900">서명하기</h3>
               <button
@@ -237,35 +390,103 @@ export default function ConsentFormOverlay({
               <SignatureCanvas
                 ref={expandedSigRef}
                 penColor="black"
-                canvasProps={{
-                  width: containerWidth > 600 ? 800 : containerWidth - 60,
-                  height: containerWidth > 600 ? 300 : 200,
-                  className: 'signature-canvas',
-                  style: { 
-                    width: '100%',
-                    height: containerWidth > 600 ? '300px' : '200px',
-                    touchAction: 'none'
-                  }
-                }}
+                minWidth={2}
+                maxWidth={4}
+                 canvasProps={{
+                   width: Math.min(560, Math.floor(getViewportWidth() * 0.85)),
+                   height: getViewportWidth() < 600 ? 200 : 240,
+                   className: 'signature-canvas',
+                   style: { 
+                     width: '100%',
+                     height: getViewportWidth() < 600 ? '200px' : '240px',
+                     touchAction: 'none',
+                     display: 'block',
+                     transform: 'scale(1)', // 캔버스 스케일 고정
+                     transformOrigin: 'top left'
+                   }
+                 }}
                 onEnd={handleSignatureEnd}
               />
-              <div className="absolute top-2 left-2 text-xs text-gray-500">
+              <div className="absolute top-2 left-2 text-xs text-gray-500 pointer-events-none">
                 📝 여기에 서명해주세요
               </div>
             </div>
             
-            <div className="flex flex-col sm:flex-row justify-between gap-3">
+            <div className="flex flex-col sm:flex-row justify-between gap-3 mt-4">
               <button
                 onClick={clearSignature}
-                className="px-4 py-2 text-red-600 hover:text-red-700 border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
+                className="flex-1 sm:flex-none px-4 py-3 text-red-600 hover:text-red-700 border border-red-300 rounded-lg hover:bg-red-50 transition-colors text-center font-medium"
               >
                 서명 지우기
               </button>
               <button
                 onClick={closeSignatureModal}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="flex-1 sm:flex-none px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
               >
                 서명 완료
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 성명 입력 모달 - viewport 변화 방지 */}
+      {isNameInputExpanded && (
+        <div 
+          className="fixed inset-0 bg-white z-50 p-4" 
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            width: '100vw',
+            height: '100dvh'
+          }}
+        >
+          <div 
+            className="bg-white rounded-lg p-4 overflow-auto flex flex-col"
+            style={{
+              width: 'min(90vw, 400px)',
+              maxWidth: '400px',
+              margin: 'auto',
+              transform: 'scale(1)',
+              transformOrigin: 'center center'
+            }}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">성명 입력</h3>
+              <button
+                onClick={closeNameInputModal}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="mb-4">
+              <input
+                type="text"
+                value={tempName}
+                onChange={(e) => setTempName(e.target.value)}
+                placeholder="성명을 입력하세요"
+                className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-center text-lg text-black"
+                autoFocus
+              />
+            </div>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={closeNameInputModal}
+                className="flex-1 px-4 py-3 text-gray-600 hover:text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              >
+                취소
+              </button>
+              <button
+                onClick={confirmNameInput}
+                className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              >
+                확인
               </button>
             </div>
           </div>

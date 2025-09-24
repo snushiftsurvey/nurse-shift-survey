@@ -168,6 +168,8 @@ export default function ResearcherManager() {
               <SignatureCanvas
                 ref={sigRef}
                 penColor="black"
+                minWidth={2}
+                maxWidth={4}
                 canvasProps={{
                   width: 600,
                   height: 200,

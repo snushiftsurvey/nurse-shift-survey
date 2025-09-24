@@ -23,9 +23,15 @@ export default function PersonalInfoPage() {
   const isAccessible = useProtectedRoute()
   
   // 동의서 관련 훅
-  const { draft, clearDraft } = useConsentDraft()
+  const { draft, clearDraft, refresh } = useConsentDraft()
   const { generateAndSavePDF, generating } = useConsentPDF()
   const { researcher } = useResearcher()
+
+  // 개인정보 페이지에서 로컬 저장소 데이터 로딩
+  useEffect(() => {
+    console.log('📄 [PERSONAL-INFO 페이지] - 로컬 저장소 데이터 로딩 시작')
+    refresh() // 로컬 저장소에서 서명 데이터 로딩
+  }, [])
 
   // 디버깅: draft와 researcher 상태 로그
   useEffect(() => {
@@ -69,7 +75,18 @@ export default function PersonalInfoPage() {
           draftData: draft ? { name: draft.consent_name, sig1: !!draft.consent_signature1, sig2: !!draft.consent_signature2 } : null
         })
         
+        // 🔍 PDF 생성 조건 상세 확인 (개인정보 미동의)
+        console.log('🔍 PDF 생성 조건 확인:', {
+          draft_exists: !!draft,
+          researcher_exists: !!researcher,  
+          surveyResult_exists: !!surveyResult,
+          draft_keys: draft ? Object.keys(draft) : 'NULL',
+          researcher_name: researcher?.name || 'NULL',
+          surveyResult_value: surveyResult || 'NULL'
+        })
+
         if (draft && researcher && surveyResult) {
+          console.log('✅ 모든 조건 충족 - PDF 생성 시작 (개인정보 미동의)...')
           console.log('📝 서명 데이터 저장 시작 (개인정보 미동의)...')
           try {
             const consentData = {
@@ -211,7 +228,18 @@ export default function PersonalInfoPage() {
           draftData: draft ? { name: draft.consent_name, sig1: !!draft.consent_signature1, sig2: !!draft.consent_signature2 } : null
         })
         
+        // 🔍 PDF 생성 조건 상세 확인 (개인정보 동의)
+        console.log('🔍 PDF 생성 조건 확인:', {
+          draft_exists: !!draft,
+          researcher_exists: !!researcher,  
+          surveyResult_exists: !!surveyResult,
+          draft_keys: draft ? Object.keys(draft) : 'NULL',
+          researcher_name: researcher?.name || 'NULL',
+          surveyResult_value: surveyResult || 'NULL'
+        })
+
         if (draft && researcher && surveyResult) {  // surveyResult가 직접 ID임
+          console.log('✅ 모든 조건 충족 - PDF 생성 시작 (개인정보 동의)...')
           console.log('📝 서명 데이터 저장 시작 (개인정보 동의)...')
           try {
             const consentData = {

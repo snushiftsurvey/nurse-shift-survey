@@ -63,6 +63,8 @@ export default function SignaturePad({ onSignatureChange, signatureData }: Signa
           <SignatureCanvas
             ref={sigRef}
             penColor="black"
+            minWidth={2}
+            maxWidth={4}
             canvasProps={{
               width: 400,
               height: 150,

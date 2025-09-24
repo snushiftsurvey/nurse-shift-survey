@@ -23,7 +23,7 @@ export function useSurvey() {
   }, [dispatch])
 
   const forceClearAll = useCallback(() => {
-    console.log('🔒 강제 전체 초기화 실행')
+    console.log('강제 전체 초기화 실행')
     dispatch({ type: 'FORCE_CLEAR_ALL' })
   }, [dispatch])
 

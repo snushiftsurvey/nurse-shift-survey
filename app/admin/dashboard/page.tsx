@@ -8,7 +8,6 @@ import { createClient } from '@supabase/supabase-js'
 import WorkScheduleViewer from '@/components/admin/WorkScheduleViewer'
 import SurveyLimitsModal from '@/components/admin/SurveyLimitsModal'
 import ConsentDownloader from '@/components/admin/ConsentDownloader'
-import PDFManager from '@/components/admin/PDFManager'
 
 interface SurveyData {
   id: string
@@ -32,8 +31,7 @@ interface SurveyData {
     researcher_name: string
     researcher_signature: string
     researcher_date: string
-    consent_form1_pdf: string
-    consent_form2_pdf: string
+    consent_form_pdf: string
     consent_signature1?: string
     consent_signature2?: string
     created_at: string
@@ -204,6 +202,7 @@ export default function AdminDashboardPage() {
           personal_info(id, name, birth_date, phone_number)
         `)
         .eq('id', surveyId)
+        .eq('is_draft', false) // draft 데이터 제외
         .single()
 
       if (fetchError) {
@@ -258,6 +257,7 @@ export default function AdminDashboardPage() {
           .from('surveys')
           .select('*', { count: 'exact', head: true })
           .eq('department', dept.key)
+          .eq('is_draft', false) // draft 데이터 제외
         
         if (countError) {
           console.error(`❌ ${dept.key} 응답 수 조회 실패:`, countError)
@@ -286,13 +286,10 @@ export default function AdminDashboardPage() {
       setLoading(true)
       setError(null)
 
-      console.log('🔄 인증된 사용자 - 실시간 DB 조회')
-      console.log('👤 요청 사용자:', currentUser?.email)
 
       // 🔐 인증된 세션을 사용하므로 기존 supabase 클라이언트 사용
       // 캐시 방지를 위해 timestamp 쿼리 파라미터 추가
       const timestamp = Date.now()
-      console.log('🕐 쿼리 타임스탬프:', timestamp)
       
       const { data, error: fetchError } = await supabase
         .from('surveys')
@@ -317,21 +314,21 @@ export default function AdminDashboardPage() {
             researcher_name,
             researcher_signature,
             researcher_date,
-            consent_form1_pdf,
-            consent_form2_pdf,
+            consent_form_pdf,
             consent_signature1,
             consent_signature2,
             created_at
           )
         `)
+        .eq('is_draft', false) // draft 데이터 제외
         .order('created_at', { ascending: false })
 
       if (fetchError) {
         throw fetchError
       }
 
-      console.log(`📊 authenticated 조회 결과:`, data?.length, '개')
-      console.log('📋 조회된 데이터 ID들:', data?.map(s => s.id.substring(0, 8)))
+      //console.log(`📊 authenticated 조회 결과:`, data?.length, '개')
+      //console.log('📋 조회된 데이터 ID들:', data?.map(s => s.id.substring(0, 8)))
 
       // personal_info와 consent_pdf 관계를 기반으로 설정
       const surveysWithPersonalInfo = data?.map(survey => ({
@@ -340,7 +337,6 @@ export default function AdminDashboardPage() {
         consent_pdf: survey.consent_pdfs || []
       })) || []
 
-      console.log(`✅ UI 설정 완료:`, surveysWithPersonalInfo.length, '개')
       setSurveys(surveysWithPersonalInfo)
 
       // 부서별 통계도 함께 조회
@@ -366,6 +362,7 @@ export default function AdminDashboardPage() {
           *,
           personal_info(name, birth_date, phone_number)
         `)
+        .eq('is_draft', false) // draft 데이터 제외
         .order('created_at', { ascending: false })
 
       if (error) throw error
@@ -462,7 +459,7 @@ export default function AdminDashboardPage() {
         
         // 기본 정보 (클라이언트 요청 순서대로 재배열)
         const basicData = [
-          escapeCsvField(survey.id),
+          `="${survey.id}"`,  // ID에 작은따옴표 추가
           escapeCsvField(getInstitutionTypeLabel(survey.medical_institution_type)),
           escapeCsvField(getLocationLabel(survey.medical_institution_location)),
           escapeCsvField(getDepartmentLabel(survey.department)),
@@ -471,8 +468,8 @@ export default function AdminDashboardPage() {
           escapeCsvField(survey.hire_year),
           escapeCsvField(survey.hire_month),
           escapeCsvField(survey.personal_info?.[0]?.name || ''),
-          escapeCsvField(survey.personal_info?.[0]?.birth_date || ''),
-          `="${survey.personal_info?.[0]?.phone_number || ''}"`
+          `="${survey.personal_info?.[0]?.birth_date || ''}"`,  // 생년월일에 작은따옴표 추가
+          `="${survey.personal_info?.[0]?.phone_number || ''}"`  // 휴대폰번호 (기존)
         ]
         
         // 근무유형 정의 데이터 (동적 개수)
@@ -574,20 +571,18 @@ export default function AdminDashboardPage() {
       } else {
         newSelected = prev.filter(id => id !== surveyId)
       }
-      
-      console.log(`📋 체크박스 ${checked ? '선택' : '해제'}:`, surveyId)
-      console.log('✅ 최종 선택된 ID들:', newSelected)
+
       return newSelected
     })
   }
 
   // 전체 선택/해제 (강화된 버전)
   const handleSelectAll = (checked: boolean) => {
-    console.log(`🔄 전체 ${checked ? '선택' : '해제'}`)
+
     
     if (checked) {
       const allIds = surveys.map(survey => survey.id)
-      console.log('🎯 전체 선택 ID들:', allIds)
+
       setSelectedSurveyIds(allIds)
     } else {
       console.log('❌ 전체 선택 해제')
@@ -602,20 +597,16 @@ export default function AdminDashboardPage() {
       return
     }
 
-    console.log('🗑️ 삭제 요청 ID들:', selectedSurveyIds)
 
-    const confirmMessage = `선택된 ${selectedSurveyIds.length}개의 설문을 삭제하시겠습니까?\n\n⚠️ 연결된 개인정보도 함께 삭제됩니다.\n⚠️ 이 작업은 되돌릴 수 없습니다.`
+
+    const confirmMessage = `선택된 ${selectedSurveyIds.length}개의 설문을 삭제하시겠습니까?\n\n⚠️ 연결된 개인정보도 함께 삭제됩니다.\n⚠️ 연결된 동의서 PDF도 함께 삭제됩니다.\n⚠️ 이 작업은 되돌릴 수 없습니다.`
     if (!confirm(confirmMessage)) {
       return
     }
 
     try {
       setIsDeleting(true)
-      console.log('🔥 완전 삭제 프로세스 시작 (캐시 없음)')
 
-      // 🔐 인증된 사용자의 세션을 유지하면서 캐시만 제거
-      console.log('🔐 authenticated 사용자로 삭제 작업 수행')
-      console.log('👤 현재 사용자:', currentUser?.email)
       
       // ⚠️ 기존 인증된 세션 유지 - 새 클라이언트 생성하지 않음
       const deleteClient = supabase
@@ -624,11 +615,12 @@ export default function AdminDashboardPage() {
       let failedIds = []
 
       // 삭제 전 실제 존재 여부 확인
-      console.log('🔍 삭제 전 실제 존재 여부 확인...')
+ 
       const { data: existingData, error: checkError } = await deleteClient
         .from('surveys')
         .select('id')
         .in('id', selectedSurveyIds)
+        .eq('is_draft', false) // draft 데이터는 삭제 대상에서 제외
       
       if (checkError) {
         console.error('❌ 존재 여부 확인 실패:', checkError)
@@ -638,70 +630,51 @@ export default function AdminDashboardPage() {
       const existingIds = existingData?.map(item => item.id) || []
       console.log('📊 실제 존재하는 ID들:', existingIds.length, '개')
 
-      // 실제 존재하는 ID들만 삭제
-      for (const surveyId of existingIds) {
-        console.log(`🎯 삭제 실행: ${surveyId.substring(0, 8)}...`)
-        
-        // 🧪 삭제 전 해당 ID 실제 존재 확인
-        const { data: beforeDelete } = await deleteClient
-          .from('surveys')
-          .select('id')
-          .eq('id', surveyId)
-        
-        console.log(`🔍 삭제 전 ID ${surveyId.substring(0, 8)} 존재 여부:`, beforeDelete?.length || 0, '개')
+      // 🔍 사용자 인증 상태 확인 (한 번만)
+      const { data: { user }, error: authError } = await deleteClient.auth.getUser()
+      console.log(`👤 현재 사용자 상태:`, user ? 'authenticated' : 'anon')
+      
+      if (authError) {
+        console.error('🚨 인증 상태 확인 오류:', authError)
+        throw new Error('인증 상태 확인 실패')
+      }
+      
+      if (!user) {
+        console.warn('⚠️ ANON 사용자가 DELETE 시도 - RLS에서 차단될 수 있음')
+        throw new Error('인증되지 않은 사용자')
+      }
 
-        // 🔍 핵심 체크: 사용자 인증 상태 확인
-        const { data: { user }, error: authError } = await deleteClient.auth.getUser()
-        console.log(`👤 현재 사용자 상태:`, user ? 'authenticated' : 'anon')
-        console.log(`🔐 사용자 정보:`, user?.id || 'anonymous')
-        
-        if (authError) {
-          console.error('🚨 인증 상태 확인 오류:', authError)
-        }
-        
-        // RLS 정책 상태: DELETE는 authenticated만 허용됨
-        if (!user) {
-          console.warn('⚠️ ANON 사용자가 DELETE 시도 - RLS에서 차단될 수 있음')
-        }
+      // 🗂️ 1단계: 연관된 consent_pdfs 데이터 일괄 삭제 (성능 최적화)
+      console.log(`📄 연관 PDF 데이터 일괄 삭제: ${existingIds.length}개`)
+      const { error: pdfBulkDeleteError, count: pdfDeleteCount } = await deleteClient
+        .from('consent_pdfs')
+        .delete()
+        .in('survey_id', existingIds)
+      
+      if (pdfBulkDeleteError) {
+        console.warn(`⚠️ PDF 일괄 삭제 실패:`, pdfBulkDeleteError.message)
+      } else {
+        console.log(`✅ PDF 데이터 일괄 삭제 완료: ${pdfDeleteCount || 0}개`)
+      }
 
-        // 🚨 실제 삭제 시도
-        console.log(`🔥 삭제 시도: ${surveyId.substring(0, 8)}... (역할: ${user ? 'authenticated' : 'anon'})`)
-        
-        const { error, count } = await deleteClient
-          .from('surveys')
-          .delete()
-          .eq('id', surveyId)
-        
-        console.log('🔍 삭제 쿼리 결과:')
-        console.log('  - error:', error)
-        console.log('  - count:', count)
-        console.log('  - error.code:', error?.code)
-        console.log('  - error.message:', error?.message)
+      // 🚨 2단계: 설문 데이터 일괄 삭제 (성능 최적화)
+      console.log(`🔥 설문 일괄 삭제 시도: ${existingIds.length}개`)
+      const { error: surveyBulkDeleteError } = await deleteClient
+        .from('surveys')
+        .delete()
+        .in('id', existingIds)
+        .eq('is_draft', false) // draft 데이터는 삭제하지 않음
+      
+      console.log('🔍 설문 일괄 삭제 결과:')
+      console.log('  - error:', surveyBulkDeleteError)
 
-        // 🧪 삭제 후 해당 ID 실제 삭제 확인
-        const { data: afterDelete } = await deleteClient
-          .from('surveys')
-          .select('id')
-          .eq('id', surveyId)
-
-        console.log(`🔍 삭제 후 ID ${surveyId.substring(0, 8)} 존재 여부:`, afterDelete?.length || 0, '개')
-
-        if (error) {
-          console.error(`❌ 삭제 실패 (${surveyId.substring(0, 8)}):`, error)
-          console.error(`❌ 에러 상세:`, error.message, error.code, error.details)
-          failedIds.push(surveyId)
-        } else {
-          console.log(`✅ 삭제 성공 (${count}행 삭제됨)`)
-          
-          // 삭제 후에도 데이터가 남아있는지 확인
-          if (afterDelete && afterDelete.length > 0) {
-            console.error(`🚨 치명적 오류: 삭제했는데 데이터가 여전히 존재함!`)
-            failedIds.push(surveyId)
-          } else {
-            console.log(`🎉 완전 삭제 확인됨: ${surveyId.substring(0, 8)}`)
-            successCount++
-          }
-        }
+      if (surveyBulkDeleteError) {
+        console.error(`❌ 설문 일괄 삭제 실패:`, surveyBulkDeleteError)
+        failedIds = existingIds
+      } else {
+        // Supabase delete는 count를 반환하지 않으므로, 요청한 갯수 기준으로 성공 처리
+        successCount = existingIds.length
+        console.log(`✅ 설문 일괄 삭제 성공: ${successCount}개`)
       }
 
       console.log(`📊 삭제 완료: ${successCount}개 성공, ${failedIds.length}개 실패`)
@@ -714,8 +687,10 @@ export default function AdminDashboardPage() {
       setSelectedSurveyIds([])
 
       // 결과 알림
-      if (successCount > 0) {
+      if (successCount > 0 && failedIds.length === 0) {
         alert(`✅ ${successCount}개 설문 삭제 완료!${failedIds.length > 0 ? `\n⚠️ ${failedIds.length}개 실패` : ''}`)
+      } else if (successCount > 0 && failedIds.length > 0) {
+        alert(`⚠️ 일부만 삭제됨: 성공 ${successCount}개 / 실패 ${failedIds.length}개`)
       } else {
         alert('❌ 모든 삭제 작업이 실패했습니다.')
       }
@@ -732,21 +707,21 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        console.log('🔐 관리자 인증 상태 확인 중...')
+
         
         // 먼저 현재 세션 상태 확인
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
         
         if (sessionError) {
-          console.error('❌ 세션 확인 오류:', sessionError)
-          console.warn('⚠️ 세션 없음 - 로그인 필요')
+          console.error(' 세션 확인 오류:', sessionError)
+          console.warn(' 세션 없음 - 로그인 필요')
           setAuthLoading(false)
           router.push('/admin')
           return
         }
 
         if (!session) {
-          console.warn('⚠️ 인증 세션 없음 - 로그인 페이지로 리다이렉트')
+          console.warn(' 인증 세션 없음 - 로그인 페이지로 리다이렉트')
           setAuthLoading(false)
           router.push('/admin')
           return
@@ -756,28 +731,23 @@ export default function AdminDashboardPage() {
         const { data: { user }, error: userError } = await supabase.auth.getUser()
         
         if (userError || !user) {
-          console.error('❌ 사용자 정보 확인 실패:', userError)
-          console.warn('⚠️ 유효하지 않은 사용자 - 로그인 필요')
+          console.error(' 사용자 정보 확인 실패:', userError)
+          console.warn(' 유효하지 않은 사용자 - 로그인 필요')
           setAuthLoading(false)
           router.push('/admin')
           return
         }
 
-        console.log('✅ 인증된 관리자:', user.email)
-        console.log('🔐 사용자 ID:', user.id)
-        console.log('👤 사용자 역할: authenticated')
-        console.log('🕐 세션 만료 시간:', session.expires_at)
-        
         setIsAuthenticated(true)
         setCurrentUser(user)
         setAuthLoading(false)
         
         // 인증된 경우에만 데이터 로드
-        console.log('🚀 인증 완료 - 데이터 로드 시작')
+
         fetchSurveys()
         
       } catch (err) {
-        console.error('💥 인증 확인 중 예외:', err)
+        console.error(' 인증 확인 중 예외:', err)
         
         // AuthSessionMissingError 특별 처리
         if (err instanceof Error && err.message.includes('session')) {
@@ -1118,7 +1088,7 @@ export default function AdminDashboardPage() {
                         type="checkbox"
                         checked={surveys.length > 0 && selectedSurveyIds.length === surveys.length}
                         onChange={(e) => handleSelectAll(e.target.checked)}
-                        className="h-3 w-3 text-blue-600 border-2 border-gray-400 rounded focus:ring-blue-500 focus:ring-1"
+                        className="h-3 w-3 text-blue-600 border border-gray-300 rounded focus:ring-blue-500 focus:ring-1"
                       />
                     </th>
                     <th className="w-20 px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
@@ -1206,7 +1176,7 @@ export default function AdminDashboardPage() {
                           type="checkbox"
                           checked={selectedSurveyIds.includes(survey.id)}
                           onChange={(e) => handleSelectSurvey(survey.id, e.target.checked)}
-                          className="h-3 w-3 text-blue-600 border-2 border-gray-400 rounded focus:ring-blue-500 focus:ring-1 cursor-pointer"
+                          className="h-3 w-3 text-blue-600 border border-gray-300 rounded focus:ring-blue-500 focus:ring-1 cursor-pointer"
                         />
                       </td>
                       <td className="w-20 px-2 py-2 whitespace-nowrap text-xs text-gray-900">
@@ -1235,7 +1205,7 @@ export default function AdminDashboardPage() {
                       </td>
                       <td className="w-20 px-2 py-2 whitespace-nowrap">
                         {survey.consent_pdf && survey.consent_pdf.length > 0 ? (
-                          <ConsentDownloader consentRecord={survey.consent_pdf[0]} />
+                          <ConsentDownloader consentRecord={survey.consent_pdf[0] as any} />
                         ) : (
                           <span className="inline-flex px-1 py-0.5 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
                             없음
