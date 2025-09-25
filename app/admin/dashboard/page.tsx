@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { createClient } from '@supabase/supabase-js'
 import WorkScheduleViewer from '@/components/admin/WorkScheduleViewer'
 import SurveyLimitsModal from '@/components/admin/SurveyLimitsModal'
 import ConsentDownloader from '@/components/admin/ConsentDownloader'
@@ -88,6 +87,10 @@ export default function AdminDashboardPage() {
   // 페이지네이션 상태 관리
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 50
+  
+  // 데이터 로딩 상태 관리
+  const [hasMoreData, setHasMoreData] = useState(true)
+  const [totalSurveyCount, setTotalSurveyCount] = useState(0)
   
   const router = useRouter()
 
@@ -247,16 +250,23 @@ export default function AdminDashboardPage() {
   // 부서별 통계 및 제한 조회
   const fetchDepartmentStats = async () => {
     try {
+      console.log('📊 부서별 통계 조회 시작...')
+
       // 1. 제한 설정 조회
       const { data: limits, error: limitsError } = await supabase
         .from('survey_limits')
         .select('*')
       
       if (limitsError) {
-        console.error('❌ 응답자 수 제한 설정 조회 실패:', limitsError)
+        console.error('❌ 응답자 수 제한 설정 조회 실패:', {
+          code: limitsError.code,
+          message: limitsError.message,
+          details: limitsError.details
+        })
         return
       }
 
+      console.log('✅ 제한 설정 조회 성공:', limits?.length, '개')
       setLimitsData(limits || [])
 
       // 2. 부서별 현재 응답 수 조회
@@ -269,6 +279,8 @@ export default function AdminDashboardPage() {
       const stats: {[key: string]: {current: number, limit: number}} = {}
 
       for (const dept of departments) {
+        console.log(`🔍 ${dept.name} 응답 수 조회...`)
+        
         // 현재 응답 수 조회
         const { count: currentCount, error: countError } = await supabase
           .from('surveys')
@@ -277,23 +289,30 @@ export default function AdminDashboardPage() {
           .eq('is_draft', false) // draft 데이터 제외
         
         if (countError) {
-          console.error(`❌ ${dept.key} 응답 수 조회 실패:`, countError)
+          console.error(`❌ ${dept.key} 응답 수 조회 실패:`, {
+            code: countError.code,
+            message: countError.message,
+            details: countError.details
+          })
           continue
         }
 
-        // 제한 값 찾기
-        const limitSetting = limits?.find(l => l.setting_name === `${dept.key.replace('-', '_')}_limit`)
+        // 제한 값 찾기  
+        const limitSetting = limits?.find((l: any) => l.setting_name === `${dept.key.replace('-', '_')}_limit`)
         const limit = limitSetting?.setting_value || 0
 
         stats[dept.key] = {
           current: currentCount || 0,
           limit: limit
         }
+
+        console.log(`✅ ${dept.name}: ${currentCount}/${limit}`)
       }
 
       setDepartmentStats(stats)
+      console.log('📊 부서별 통계 업데이트 완료')
     } catch (err) {
-      console.error('부서별 통계 조회 실패:', err)
+      console.error('💥 부서별 통계 조회 중 오류:', err)
     }
   }
 
@@ -303,11 +322,25 @@ export default function AdminDashboardPage() {
       setLoading(true)
       setError(null)
 
+      console.log('📊 설문 데이터 조회 시작...')
 
-      // 🔐 인증된 세션을 사용하므로 기존 supabase 클라이언트 사용
-      // 캐시 방지를 위해 timestamp 쿼리 파라미터 추가
-      const timestamp = Date.now()
+      // 🔐 먼저 현재 인증 상태 확인
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      console.log('👤 현재 인증 상태:', user ? 'authenticated' : 'anon', user ? `(${user.id})` : '')
       
+      if (authError) {
+        console.error('❌ 인증 확인 오류:', authError)
+        throw new Error(`인증 확인 실패: ${authError.message}`)
+      }
+
+      if (!user) {
+        console.warn('⚠️ 인증되지 않은 상태에서 데이터 조회 시도')
+        throw new Error('인증이 필요합니다. 다시 로그인해주세요.')
+      }
+
+      console.log('🔍 최적화된 설문 데이터 쿼리 실행 (전체 데이터, PDF 제외)...')
+      
+      // 전체 설문 데이터 조회 (PDF 바이너리 데이터만 제외하여 빠른 로딩)
       const { data, error: fetchError } = await supabase
         .from('surveys')
         .select(`
@@ -324,15 +357,9 @@ export default function AdminDashboardPage() {
           personal_info(id),
           consent_pdfs(
             id,
-            survey_id,
-            participant_name_signature,
+            survey_id, 
             consent_date,
             researcher_name,
-            researcher_signature,
-            researcher_date,
-            consent_form_pdf,
-            consent_signature1,
-            consent_signature2,
             created_at
           )
         `)
@@ -340,27 +367,51 @@ export default function AdminDashboardPage() {
         .order('created_at', { ascending: false })
 
       if (fetchError) {
-        throw fetchError
+        console.error('❌ 설문 데이터 쿼리 실패:', {
+          code: fetchError.code,
+          message: fetchError.message,
+          details: fetchError.details,
+          hint: fetchError.hint
+        })
+        
+        // 타임아웃 에러인 경우 특별 처리
+        if (fetchError.code === '57014') {
+          throw new Error('데이터가 너무 많아 조회 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.')
+        }
+        
+        throw new Error(`데이터 조회 실패: ${fetchError.message} (${fetchError.code})`)
       }
 
-      //console.log(`📊 authenticated 조회 결과:`, data?.length, '개')
-      //console.log('📋 조회된 데이터 ID들:', data?.map(s => s.id.substring(0, 8)))
+      console.log(`✅ 전체 설문 데이터 조회 성공:`, data?.length, '개')
+
+      if (!data) {
+        console.log('📄 설문 데이터가 존재하지 않습니다')
+        setSurveys([])
+        setError(null)
+        setTotalSurveyCount(0)
+        setHasMoreData(false)
+        return
+      }
 
       // personal_info와 consent_pdf 관계를 기반으로 설정
-      const surveysWithPersonalInfo = data?.map(survey => ({
+      const surveysWithPersonalInfo = data?.map((survey: any) => ({
         ...survey,
         has_personal_info: survey.personal_info && survey.personal_info.length > 0,
         consent_pdf: survey.consent_pdfs || []
       })) || []
 
       setSurveys(surveysWithPersonalInfo)
+      setTotalSurveyCount(data.length) // 실제 로드된 데이터 수
+      setHasMoreData(false) // 전체 데이터 로드 완료
+      console.log('📊 전체 데이터 UI 상태 업데이트 완료')
 
       // 부서별 통계도 함께 조회
       await fetchDepartmentStats()
       
     } catch (err) {
-      console.error('설문 데이터 조회 실패:', err)
-      setError('설문 데이터를 불러오는 중 오류가 발생했습니다.')
+      console.error('💥 설문 데이터 조회 중 오류:', err)
+      const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다'
+      setError(`설문 데이터 조회 실패: ${errorMessage}`)
     } finally {
       setLoading(false)
     }
@@ -412,14 +463,14 @@ export default function AdminDashboardPage() {
       ]
       
       // 근무유형 정의 헤더 (동적 생성)
-      const maxWorkTypes = Math.max(...data.map(survey => (survey.work_types || []).length), 1) // 최소 1개
+      const maxWorkTypes = Math.max(...data.map((survey: any) => (survey.work_types || []).length), 1) // 최소 1개
       const workTypeHeaders = []
       for (let i = 1; i <= maxWorkTypes; i++) {
         workTypeHeaders.push(`근무${i}`, `근무${i}시작`, `근무${i}종료`, `근무${i}휴게`)
       }
       
       // 휴무유형 정의 헤더 (동적 생성)
-      const maxOffDutyTypes = Math.max(...data.map(survey => (survey.off_duty_types || []).length), 5) // 최소 5개 (기본 휴무)
+      const maxOffDutyTypes = Math.max(...data.map((survey: any) => (survey.off_duty_types || []).length), 5) // 최소 5개 (기본 휴무)
       const offDutyHeaders = []
       for (let i = 1; i <= maxOffDutyTypes; i++) {
         offDutyHeaders.push(`휴무${i}`)
@@ -431,7 +482,7 @@ export default function AdminDashboardPage() {
       const headers = [...basicHeaders, ...workTypeHeaders, ...offDutyHeaders, ...dateHeaders].join(',')
       console.log('📋 헤더 생성 완료:', basicHeaders.length + workTypeHeaders.length + offDutyHeaders.length + dateHeaders.length, '개 열')
 
-      // 근무유형 ID를 상세 정보로 변환하는 함수 (시간 정보 포함)
+      // 근무유형 ID를 상세 정보로 변환하는 함수 (시간 정보 포함)  
       const getShiftTypeDetail = (shiftId: string, workTypes: any[], offDutyTypes: any[]) => {
         // work_types에서 찾기
         const workType = workTypes?.find(wt => wt.id === shiftId)
@@ -470,7 +521,7 @@ export default function AdminDashboardPage() {
 
 
       // CSV 데이터 생성
-      const csvData = data.map(survey => {
+      const csvData = data.map((survey: any) => {
         console.log('🔍 처리 중인 설문 ID:', survey.id.substring(0, 8))
         
         // 기본 정보 (클라이언트 요청 순서대로 재배열)
@@ -489,7 +540,7 @@ export default function AdminDashboardPage() {
         ]
         
         // 근무유형 정의 데이터 (동적 개수)
-        const workTypes = survey.work_types || []
+        const workTypes = (survey as any).work_types || []
         const workTypeData = []
         for (let i = 0; i < maxWorkTypes; i++) {
           const workType = workTypes[i]
@@ -643,7 +694,7 @@ export default function AdminDashboardPage() {
         throw checkError
       }
 
-      const existingIds = existingData?.map(item => item.id) || []
+      const existingIds = existingData?.map((item: any) => item.id) || []
       console.log('📊 실제 존재하는 ID들:', existingIds.length, '개')
 
       // 🔍 사용자 인증 상태 확인 (한 번만)
@@ -836,21 +887,30 @@ export default function AdminDashboardPage() {
               <button
                 onClick={async () => {
                   try {
-                    console.log('🚪 관리자 로그아웃 시도...')
+                    console.log('🚪 Admin 로그아웃 시도... (설문 웹과 독립적)')
                     
+                    // Admin 세션만 정리 (설문 웹에 영향 없음)
                     const { error } = await supabase.auth.signOut()
                     
                     if (error) {
-                      console.error('❌ 로그아웃 실패:', error)
-                      alert('로그아웃 중 오류가 발생했습니다.')
-                    } else {
-                      console.log('✅ 로그아웃 성공')
-                      alert('로그아웃되었습니다.')
-                      router.push('/admin')
+                      console.error('❌ Admin 로그아웃 실패:', error)
                     }
+                    
+                    console.log('✅ Admin 로그아웃 완료 (설문 웹 데이터 보존)')
+                    
+                    // Admin 상태만 초기화
+                    setIsAuthenticated(false)
+                    setCurrentUser(null)
+                    setSurveys([])
+                    
+                    // 로그인 페이지로 이동
+                    router.push('/admin')
+                    
                   } catch (err) {
-                    console.error('💥 로그아웃 중 예외:', err)
-                    alert('로그아웃 중 오류가 발생했습니다.')
+                    console.error('💥 Admin 로그아웃 중 예외:', err)
+                    
+                    // 예외 발생해도 강제로 로그인 페이지로 이동
+                    router.push('/admin')
                   }
                 }}
                 className="bg-gray-600 text-white px-3 py-1.5 rounded-md text-sm hover:bg-gray-700 transition-colors"
@@ -1031,6 +1091,14 @@ export default function AdminDashboardPage() {
               )}
             </div>
             <div className="flex items-center space-x-3">
+              {/* 전체 데이터 수 표시 */}
+              <div className="flex items-center px-3 py-1.5 bg-green-50 rounded-md text-sm text-green-700">
+                <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                전체 <span className="font-bold">{totalSurveyCount}</span>개 로드 완료
+              </div>
+              
               {/* 선택된 항목 표시 */}
               <div className="flex items-center px-3 py-1.5 bg-blue-50 rounded-md text-sm text-blue-700">
                 선택됨: <span className="font-bold ml-1">{selectedSurveyIds.length}</span>개
@@ -1226,7 +1294,17 @@ export default function AdminDashboardPage() {
                       </td>
                       <td className="w-20 px-2 py-2 whitespace-nowrap">
                         {survey.consent_pdf && survey.consent_pdf.length > 0 ? (
-                          <ConsentDownloader consentRecord={survey.consent_pdf[0] as any} />
+                          <ConsentDownloader 
+                            consentRecord={{
+                              id: survey.consent_pdf[0].id,
+                              survey_id: survey.consent_pdf[0].survey_id,
+                              consent_date: survey.consent_pdf[0].consent_date || '2025.01.01',
+                              researcher_name: survey.consent_pdf[0].researcher_name || '',
+                              researcher_signature: '',
+                              researcher_date: '',
+                              created_at: survey.consent_pdf[0].created_at || ''
+                            } as any} 
+                          />
                         ) : (
                           <span className="inline-flex px-1 py-0.5 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
                             없음

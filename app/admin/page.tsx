@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
@@ -12,14 +12,52 @@ export default function AdminLoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
 
+  // 페이지 로드 시 Admin 세션만 정리 (설문 웹 데이터는 보존)
+  useEffect(() => {
+    const clearAdminSession = async () => {
+      try {
+        console.log('🧹 Admin 로그인 페이지 - Admin 세션만 정리 시작')
+        
+        // Admin 클라이언트의 세션 상태만 확인
+        const { data: { session } } = await supabase.auth.getSession()
+        
+        if (session) {
+          console.log('⚠️ 기존 Admin 세션 발견 - 로그아웃 진행')
+          // Admin 클라이언트에서만 로그아웃 (설문 웹 영향 없음)
+          await supabase.auth.signOut()
+        }
+        
+        console.log('✅ Admin 세션 정리 완료 (설문 웹 데이터 보존)')
+      } catch (err) {
+        console.warn('⚠️ Admin 세션 정리 중 오류 (무시 가능):', err)
+      }
+    }
+    
+    clearAdminSession()
+  }, [])
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     
     try {
+      console.log('🔐 Admin 로그인 시도 시작')
+      
+      // Admin 세션 상태만 확인 및 정리 (설문 웹과 독립적)
+      const { data: { session: existingSession } } = await supabase.auth.getSession()
+      if (existingSession) {
+        console.log('⚠️ 로그인 전 기존 Admin 세션 발견 - 정리')
+        await supabase.auth.signOut()
+        
+        // 잠시 대기 (Admin 세션 정리 완료 보장)
+        await new Promise(resolve => setTimeout(resolve, 500))
+      }
+      
       const emailFormat = credentials.username === 'admin' 
         ? 'admin@nurseshiftsurvey.local'  // admin → 특별 이메일
         : `${credentials.username}@nurseshiftsurvey.local`  // 기타 → 일반 변환
+
+      console.log('📧 로그인 시도:', emailFormat)
 
       // 실제 Supabase Auth 로그인
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -28,26 +66,48 @@ export default function AdminLoginPage() {
       })
 
       if (error) {
-        console.error('❌ 로그인 실패:', error)
+        console.error('❌ 로그인 실패:', {
+          message: error.message,
+          status: error.status,
+          name: error.name
+        })
+        
+        // Admin 세션만 정리 (설문 웹 영향 없음)
+        await supabase.auth.signOut()
         
         // 사용자 친화적 에러 메시지
         if (error.message.includes('Invalid login credentials')) {
           alert('아이디 또는 비밀번호가 올바르지 않습니다.')
+        } else if (error.message.includes('refresh')) {
+          alert('Admin 세션 문제가 발생했습니다. 페이지를 새로고침 후 다시 시도해주세요.')
         } else {
           alert('로그인 실패: ' + error.message)
         }
         return
       }
 
-      if (data.user) {
+      if (data.user && data.session) {
+        console.log('✅ 로그인 성공:', data.user.id)
+        console.log('🎫 새 세션 생성 완료')
+        
+        // 성공 시 대시보드로 이동
         router.push('/admin/dashboard')
       } else {
+        console.error('❌ 로그인 응답 문제:', { user: !!data.user, session: !!data.session })
         alert('로그인에 실패했습니다.')
       }
       
     } catch (err) {
       console.error('💥 로그인 중 예외:', err)
-      alert('로그인 중 오류가 발생했습니다: ' + (err instanceof Error ? err.message : '알 수 없는 오류'))
+      
+      // 예외 발생 시에도 Admin 세션만 정리
+      try {
+        await supabase.auth.signOut()
+      } catch (cleanupErr) {
+        console.warn('Admin 세션 정리 중 오류:', cleanupErr)
+      }
+      
+      alert('Admin 로그인 중 오류가 발생했습니다. 페이지를 새로고침 후 다시 시도해주세요.')
     } finally {
       setIsLoading(false)
     }

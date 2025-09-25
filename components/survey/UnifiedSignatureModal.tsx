@@ -115,7 +115,7 @@ export default function UnifiedSignatureModal({
 
   const getStepTitle = () => {
     switch (currentStep) {
-      case 1: return '성명을 서명해주세요'
+      case 1: return '성명을 정자로 기재해주세요'
       case 2: return '서명을 해주세요'
       case 3: return '입력 내용을 확인해주세요'
       default: return ''

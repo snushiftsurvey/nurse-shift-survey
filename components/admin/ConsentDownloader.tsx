@@ -11,8 +11,6 @@ interface ConsentDownloaderProps {
     researcher_signature: string
     researcher_date: string
     consent_form_pdf?: string
-    consent_form1_pdf?: string // 호환성
-    consent_form2_pdf?: string // 호환성
     created_at: string
   }
 }
@@ -23,12 +21,45 @@ export default function ConsentDownloader({ consentRecord }: ConsentDownloaderPr
   const downloadPDF = async () => {
     setDownloading(true)
     try {
-      // 새로운 통합 PDF 또는 기존 첫 번째 PDF 사용
-      const pdfData = consentRecord.consent_form_pdf || consentRecord.consent_form1_pdf
+      // PDF 데이터가 없으면 별도로 조회
+      let pdfData = consentRecord.consent_form_pdf
+      
+      if (!pdfData) {
+        console.log('📄 PDF 바이너리 데이터 별도 조회 시작...', consentRecord.id)
+        
+        const { supabase } = await import('@/lib/supabase')
+        const { data: pdfRecord, error } = await supabase
+          .from('consent_pdfs')
+          .select('consent_form_pdf, consent_date, researcher_name')
+          .eq('id', consentRecord.id)
+          .single()
+        
+        if (error) {
+          console.error('❌ PDF 바이너리 데이터 조회 실패:', error)
+          alert('PDF 파일을 다운로드할 수 없습니다.')
+          return
+        }
+        
+        pdfData = pdfRecord?.consent_form_pdf
+        
+        if (!pdfData) {
+          alert('PDF 파일이 존재하지 않습니다.')
+          return
+        }
+        
+        // 날짜 정보도 업데이트
+        if (pdfRecord) {
+          consentRecord.consent_date = pdfRecord.consent_date || consentRecord.consent_date
+          consentRecord.researcher_name = pdfRecord.researcher_name || consentRecord.researcher_name
+        }
+        
+        console.log('✅ PDF 바이너리 데이터 별도 조회 성공')
+      }
+      
       if (pdfData) {
-        // 날짜를 YYYYMMDD 형식으로 변환 (2025.01.01 → 20250101)
-        const dateFormatted = consentRecord.consent_date.replace(/\./g, '')
-        const fileName = `${consentRecord.survey_id}_${dateFormatted}.pdf`
+        // 날짜를 YYYYMMDD 형식으로 변환 (2025.01.01 → 20250101)  
+        const dateFormatted = (consentRecord.consent_date || '2025.01.01').replace(/\./g, '')
+        const fileName = `동의서_${consentRecord.survey_id?.substring(0, 8) || 'unknown'}_${dateFormatted}.pdf`
 
         // 배포는 HTTPS 가정: data URI 직접 다운로드
         const link = document.createElement('a')
@@ -46,7 +77,8 @@ export default function ConsentDownloader({ consentRecord }: ConsentDownloaderPr
     }
   }
 
-  const hasPDF = consentRecord.consent_form_pdf || consentRecord.consent_form1_pdf
+  // PDF 바이너리 데이터가 없어도 consent_pdf 레코드가 있으면 PDF 존재
+  const hasPDF = consentRecord.consent_form_pdf || consentRecord.id
 
   return (
     <div className="flex space-x-1">

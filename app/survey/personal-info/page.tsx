@@ -322,7 +322,7 @@ export default function PersonalInfoPage() {
               
               <div className="text-gray-700 space-y-3">
                 <p className="text-sm md:text-base">
-                참여해주신 답례로 5,000원 상당 모바일 기프티콘을 제공을 위해 
+                참여해주신 답례로 5,000원 상당 모바일 기프티콘 제공을 위해 
                 다음 개인정보 수집 및 이용에 대한 동의를 구하고자 합니다. 해당 개인정보는 연구 목적이 아닌, 
                 사례지급을 위한 행정처리용으로만 사용될 것이며 행정처리 이후 즉시 폐기될 것입니다. 
                 </p>
