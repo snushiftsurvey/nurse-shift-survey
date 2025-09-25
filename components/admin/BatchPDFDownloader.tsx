@@ -2,13 +2,17 @@
 
 import React, { useState } from 'react'
 import JSZip from 'jszip'
+import { supabase } from '@/lib/supabase'
 
 interface BatchPDFDownloaderProps {
   surveys: Array<{
     id: string
     created_at: string
     consent_pdf?: Array<{
-      consent_form_pdf: string
+      id: string
+      survey_id: string
+      consent_date: string
+      researcher_name: string
       created_at: string
     }>
   }>
@@ -37,17 +41,19 @@ export default function BatchPDFDownloader({ surveys }: BatchPDFDownloaderProps)
     if (isDownloading) return
 
     setIsDownloading(true)
-    setProgress({
-      current: 0,
-      total: batchSize,
-      status: 'preparing',
-      message: `배치 ${batchIndex + 1}/${totalBatches} 준비 중...`
-    })
-
+    
     try {
       const startIndex = batchIndex * batchSize
       const endIndex = Math.min(startIndex + batchSize, surveysWithPDF.length)
       const batchSurveys = surveysWithPDF.slice(startIndex, endIndex)
+      const actualBatchSize = batchSurveys.length
+      
+      setProgress({
+        current: 0,
+        total: actualBatchSize,
+        status: 'preparing',
+        message: `배치 ${batchIndex + 1}/${totalBatches} 준비 중... (${actualBatchSize}개 파일)`
+      })
 
       console.log(` 배치 ${batchIndex + 1} 다운로드 시작:`, {
         startIndex,
@@ -64,24 +70,41 @@ export default function BatchPDFDownloader({ surveys }: BatchPDFDownloaderProps)
         message: `PDF 파일 처리 중... (0/${batchSurveys.length})`
       } : null)
 
-      // 각 PDF를 ZIP에 추가
+      // 각 PDF를 ZIP에 추가 (별도 조회 방식)
       for (let i = 0; i < batchSurveys.length; i++) {
         const survey = batchSurveys[i]
-        const pdfData = survey.consent_pdf?.[0]
+        const consentRecord = survey.consent_pdf?.[0]
         
-        if (pdfData?.consent_form_pdf) {
+        if (consentRecord?.id) {
           try {
-            // Base64 데이터에서 실제 데이터 부분만 추출
-            const base64Data = pdfData.consent_form_pdf.split(',')[1] || pdfData.consent_form_pdf
+            console.log(`📄 PDF 바이너리 조회: ${survey.id}`)
             
-            // 파일명 생성: 설문ID_날짜.pdf
-            const date = new Date(pdfData.created_at)
-            const dateStr = date.toISOString().split('T')[0].replace(/-/g, '')
-            const fileName = `${survey.id}_${dateStr}.pdf`
+            // PDF 바이너리 데이터를 별도로 조회
+            const { data: pdfRecord, error } = await supabase
+              .from('consent_pdfs')
+              .select('consent_form_pdf, consent_date')
+              .eq('id', consentRecord.id)
+              .single()
             
-            // ZIP에 파일 추가
-            zip.file(fileName, base64Data, { base64: true })
+            if (error) {
+              console.error(`❌ PDF 조회 실패 (${survey.id}):`, error)
+              continue
+            }
             
+            if (pdfRecord?.consent_form_pdf) {
+              // Base64 데이터에서 실제 데이터 부분만 추출
+              const base64Data = pdfRecord.consent_form_pdf.split(',')[1] || pdfRecord.consent_form_pdf
+              
+              // 파일명 생성: 설문ID_날짜.pdf
+              const dateStr = (pdfRecord.consent_date || consentRecord.consent_date).replace(/\./g, '')
+              const fileName = `동의서_${survey.id.substring(0, 8)}_${dateStr}.pdf`
+              
+              // ZIP에 파일 추가
+              zip.file(fileName, base64Data, { base64: true })
+              console.log(`✅ PDF 추가: ${fileName}`)
+            } else {
+              console.warn(`⚠️ PDF 데이터 없음: ${survey.id}`)
+            }
         
           } catch (error) {
             console.error(`❌ PDF 처리 실패 (${survey.id}):`, error)
@@ -92,7 +115,7 @@ export default function BatchPDFDownloader({ surveys }: BatchPDFDownloaderProps)
         setProgress(prev => prev ? {
           ...prev,
           current: i + 1,
-          message: `PDF 파일 처리 중... (${i + 1}/${batchSurveys.length})`
+          message: `PDF 파일 처리 중... (${i + 1}/${batchSurveys.length}) - ${survey.id.substring(0, 8)}`
         } : null)
       }
 
@@ -181,6 +204,11 @@ export default function BatchPDFDownloader({ surveys }: BatchPDFDownloaderProps)
           <p className="text-sm text-gray-600">
             총 {surveysWithPDF.length}개 PDF • {totalBatches}개 배치 (배치당 최대 {batchSize}개)
           </p>
+          {surveysWithPDF.length > 0 && (
+            <p className="text-xs text-amber-600 mt-1">
+              ⚠️ PDF 바이너리 데이터를 실시간 조회하므로 시간이 다소 걸릴 수 있습니다
+            </p>
+          )}
         </div>
       </div>
 
