@@ -17,14 +17,11 @@ export default function AdminLoginPage() {
     setIsLoading(true)
     
     try {
-      console.log('🔐 관리자 로그인 시도 (아이디):', credentials.username)
-      
-      // 🔧 아이디를 이메일 형식으로 변환
+
       const emailFormat = credentials.username === 'admin' 
         ? 'admin@nurseshiftsurvey.local'  // admin → 특별 이메일
         : `${credentials.username}@nurseshiftsurvey.local`  // 기타 → 일반 변환
-      
-      console.log('📧 변환된 이메일:', emailFormat)
+
       
       // 실제 Supabase Auth 로그인
       const { data, error } = await supabase.auth.signInWithPassword({

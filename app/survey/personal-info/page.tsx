@@ -85,7 +85,6 @@ export default function PersonalInfoPage() {
             const consentData = {
               survey_id: surveyResult,
               participant_name_signature: draft.consent_name || '', // 성명 서명 이미지(base64)
-              participant_phone: undefined, // 개인정보 미동의이므로 전화번호 없음
               consent_date: draft.consent_date || new Date().toLocaleDateString('ko-KR', {
                 year: 'numeric',
                 month: '2-digit',
@@ -238,7 +237,6 @@ export default function PersonalInfoPage() {
             const consentData = {
               survey_id: surveyResult,  // surveyResult가 직접 ID 문자열
               participant_name_signature: draft.consent_name || '',
-              participant_phone: personalInfo.phoneNumber,
               consent_date: draft.consent_date || new Date().toLocaleDateString('ko-KR', {
                 year: 'numeric',
                 month: '2-digit',

@@ -120,8 +120,8 @@ export default function ConsentFormOverlay({
         {/* 두 번째 서명 표시 영역 (동일한 서명 사용) */}
         {/* 연구자 서명 영역은 화면 프리뷰에서 표시하지 않음 (PDF에서만 연구자 서명 렌더링) */}
 
-        {/* 날짜(참여자) - 화면에도 PDF와 동일한 위치 표시 */}
-        {consentData.date && (
+        {/* 날짜(참여자) - 서명 완료 후에만 표시 */}
+        {consentData.date && consentData.signature && (
           <div
             className="absolute flex items-center justify-center font-medium"
             style={{

@@ -39,15 +39,7 @@ export default function ConsentPage() {
     })
   }, [])
 
-  // 오늘 날짜를 YYYY/MM/DD 형식으로 초기 설정 (페이지 표시용)
-  useEffect(() => {
-    const today = new Date()
-    const yyyy = today.getFullYear()
-    const mm = String(today.getMonth() + 1).padStart(2, '0')
-    const dd = String(today.getDate()).padStart(2, '0')
-    const displayDate = `${yyyy}.${mm}.${dd}`
-    setConsentData(prev => ({ ...prev, date: displayDate }))
-  }, [])
+  // 날짜는 서명 완료 시에만 설정 (초기에는 빈 값)
 
   // 동의서 페이지에서 수동으로 임시 저장 데이터 로딩
   // useEffect(() => {
@@ -219,10 +211,18 @@ export default function ConsentPage() {
 
   // 서명 모달에서 확인 버튼 클릭 시
   const handleSignatureConfirm = (data: { name: string; signature: string }) => {
+    // 서명 완료 시 현재 날짜 설정
+    const today = new Date()
+    const yyyy = today.getFullYear()
+    const mm = String(today.getMonth() + 1).padStart(2, '0')
+    const dd = String(today.getDate()).padStart(2, '0')
+    const displayDate = `${yyyy}.${mm}.${dd}`
+    
     setConsentData(prev => ({
       ...prev,
       name: data.name,
       signature: data.signature,
+      date: displayDate, // 서명 완료 시에만 날짜 설정
       agreed: true // 서명 완료 시 동의 처리
     }))
     setIsSignatureModalOpen(false)

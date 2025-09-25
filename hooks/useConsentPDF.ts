@@ -6,8 +6,6 @@ import html2canvas from 'html2canvas'
 interface ConsentPDFData {
   survey_id: string
   participant_name_signature: string
-  participant_phone?: string
-  participant_birth_date?: string // 생년월일 필드 추가
   consent_date: string
   researcher_name: string
   researcher_signature: string
@@ -74,7 +72,6 @@ export function useConsentPDF() {
             .insert({
               survey_id: data.survey_id,
               participant_name_signature: data.participant_name_signature,
-              participant_phone: data.participant_phone,
               consent_date: data.consent_date,
               researcher_name: data.researcher_name,
               researcher_signature: data.researcher_signature,

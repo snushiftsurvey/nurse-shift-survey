@@ -7,8 +7,6 @@ interface PDFManagerProps {
   consentRecord: {
     id: string
     survey_id: string
-    participant_name?: string
-    participant_phone?: string
     consent_date: string
     researcher_name: string
     researcher_signature: string
@@ -163,10 +161,6 @@ export default function PDFManager({ consentRecord, onPDFGenerated }: PDFManager
 
       {/* 상세 정보 (디버깅용) */}
       <div className="text-xs text-gray-500">
-        <div>참여자: {consentRecord.participant_name}</div>
-        {consentRecord.participant_phone && (
-          <div>전화: {consentRecord.participant_phone}</div>
-        )}
         <div>연구원: {consentRecord.researcher_name}</div>
         <div>
           서명데이터: {hasSignatureData ? '있음' : '없음'} | 

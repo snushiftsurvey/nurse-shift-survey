@@ -26,7 +26,6 @@ interface SurveyData {
     id: string
     survey_id: string
     participant_name_signature?: string
-    participant_phone?: string
     consent_date: string
     researcher_name: string
     researcher_signature: string
@@ -84,6 +83,10 @@ export default function AdminDashboardPage() {
   // 정렬 상태 관리
   const [sortField, setSortField] = useState<string>('created_at')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
+  
+  // 페이지네이션 상태 관리
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 50
   
   const router = useRouter()
 
@@ -166,6 +169,19 @@ export default function AdminDashboardPage() {
     }
     return 0
   })
+
+  // 페이지네이션 계산
+  const totalPages = Math.ceil(sortedSurveys.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentPageData = sortedSurveys.slice(startIndex, endIndex)
+
+  // 페이지 변경 핸들러
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+    // 페이지 변경 시 선택된 항목 초기화
+    setSelectedSurveyIds([])
+  }
 
   // 정렬 아이콘 컴포넌트
   const SortIcon = ({ field }: { field: string }) => {
@@ -309,7 +325,6 @@ export default function AdminDashboardPage() {
             id,
             survey_id,
             participant_name_signature,
-            participant_phone,
             consent_date,
             researcher_name,
             researcher_signature,
@@ -804,18 +819,18 @@ export default function AdminDashboardPage() {
             <h1 className="text-2xl font-bold text-gray-900">
               ADMIN DASHBOARD
             </h1>
-            <div className="flex space-x-4">
+            <div className="flex space-x-3">
               {/* 선택된 항목 표시 (항상 표시) */}
-              <div className="flex items-center px-3 py-2 bg-blue-50 rounded-lg text-sm text-blue-700">
+              <div className="flex items-center px-3 py-1.5 bg-blue-50 rounded-md text-sm text-blue-700">
                 선택됨: <span className="font-bold ml-1">{selectedSurveyIds.length}</span>개
               </div>
               
               {/* 응답자 수 제한 설정 버튼 */}
               <button
                 onClick={() => setShowLimitsModal(true)}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                className="bg-blue-600 text-white px-3 py-1.5 rounded-md text-sm hover:bg-blue-700 transition-colors flex items-center"
               >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                 </svg>
@@ -827,11 +842,11 @@ export default function AdminDashboardPage() {
                 <button
                   onClick={handleDeleteSelected}
                   disabled={isDeleting}
-                  className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors disabled:bg-red-400 flex items-center font-bold"
+                  className="bg-red-600 text-white px-3 py-1.5 rounded-md text-sm hover:bg-red-700 transition-colors disabled:bg-red-400 flex items-center font-medium"
                 >
                   {isDeleting ? (
                     <>
-                      <svg className="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <svg className="animate-spin h-4 w-4 mr-1.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
@@ -839,22 +854,22 @@ export default function AdminDashboardPage() {
                     </>
                   ) : (
                     <>
-                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                       </svg>
-                       삭제 ({selectedSurveyIds.length}개)
+                      삭제 ({selectedSurveyIds.length}개)
                     </>
                   )}
                 </button>
               )}
               <button
                 onClick={handleExportCSV}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center"
+                className="bg-green-600 text-white px-3 py-1.5 rounded-md text-sm hover:bg-green-700 transition-colors flex items-center"
               >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                 </svg>
-                 상세 엑셀 다운로드
+                엑셀 다운로드
               </button>
               <button
                 onClick={async () => {
@@ -876,9 +891,9 @@ export default function AdminDashboardPage() {
                     alert('로그아웃 중 오류가 발생했습니다.')
                   }
                 }}
-                className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+                className="bg-gray-600 text-white px-3 py-1.5 rounded-md text-sm hover:bg-gray-700 transition-colors"
               >
-                 로그아웃
+                로그아웃
               </button>
             </div>
           </div>
@@ -1021,7 +1036,7 @@ export default function AdminDashboardPage() {
             </h3>
             {loading ? (
               <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
-            ) : sortedSurveys.length > 0 ? (
+            ) : currentPageData.length > 0 ? (
               <div className="text-sm text-gray-600">
                 <p className="text-xs">{new Date(sortedSurveys[0].created_at).toLocaleDateString('ko-KR')}</p>
                 <p className="text-xs text-gray-500">{new Date(sortedSurveys[0].created_at).toLocaleTimeString('ko-KR')}</p>
@@ -1169,7 +1184,7 @@ export default function AdminDashboardPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {sortedSurveys.map((survey) => (
+                  {currentPageData.map((survey) => (
                     <tr key={survey.id} className="hover:bg-gray-50">
                       <td className="w-12 px-2 py-2 whitespace-nowrap text-xs text-gray-900">
                         <input
@@ -1246,6 +1261,140 @@ export default function AdminDashboardPage() {
                   ))}
                 </tbody>
               </table>
+            )}
+            
+            {/* 페이지네이션 */}
+            {!loading && totalPages > 1 && (
+                <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6">
+                  <div className="flex justify-between flex-1 sm:hidden">
+                    {/* 모바일 페이지네이션 */}
+                    <button
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      이전
+                    </button>
+                    <span className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700">
+                      {currentPage} / {totalPages}
+                    </span>
+                    <button
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      className="relative inline-flex items-center px-4 py-2 ml-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      다음
+                    </button>
+                  </div>
+                  
+                  <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm text-gray-700">
+                        총 <span className="font-medium">{sortedSurveys.length}</span>개 중{' '}
+                        <span className="font-medium">{startIndex + 1}</span>-
+                        <span className="font-medium">{Math.min(endIndex, sortedSurveys.length)}</span>개 표시
+                      </p>
+                    </div>
+                    <div>
+                      <nav className="relative z-0 inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                        {/* 이전 버튼 */}
+                        <button
+                          onClick={() => handlePageChange(currentPage - 1)}
+                          disabled={currentPage === 1}
+                          className="relative inline-flex items-center px-2 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <span className="sr-only">이전</span>
+                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </button>
+                        
+                        {/* 페이지 번호들 */}
+                        {(() => {
+                          const pages = []
+                          const maxVisiblePages = 7
+                          let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2))
+                          let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1)
+                          
+                          if (endPage - startPage + 1 < maxVisiblePages) {
+                            startPage = Math.max(1, endPage - maxVisiblePages + 1)
+                          }
+                          
+                          // 첫 페이지
+                          if (startPage > 1) {
+                            pages.push(
+                              <button
+                                key={1}
+                                onClick={() => handlePageChange(1)}
+                                className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 hover:bg-gray-50"
+                              >
+                                1
+                              </button>
+                            )
+                            if (startPage > 2) {
+                              pages.push(
+                                <span key="start-ellipsis" className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300">
+                                  ...
+                                </span>
+                              )
+                            }
+                          }
+                          
+                          // 중간 페이지들
+                          for (let i = startPage; i <= endPage; i++) {
+                            pages.push(
+                              <button
+                                key={i}
+                                onClick={() => handlePageChange(i)}
+                                className={`relative inline-flex items-center px-4 py-2 text-sm font-medium border ${
+                                  i === currentPage
+                                    ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                                    : 'text-gray-500 bg-white border-gray-300 hover:bg-gray-50'
+                                }`}
+                              >
+                                {i}
+                              </button>
+                            )
+                          }
+                          
+                          // 마지막 페이지
+                          if (endPage < totalPages) {
+                            if (endPage < totalPages - 1) {
+                              pages.push(
+                                <span key="end-ellipsis" className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300">
+                                  ...
+                                </span>
+                              )
+                            }
+                            pages.push(
+                              <button
+                                key={totalPages}
+                                onClick={() => handlePageChange(totalPages)}
+                                className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 hover:bg-gray-50"
+                              >
+                                {totalPages}
+                              </button>
+                            )
+                          }
+                          
+                          return pages
+                        })()}
+                        
+                        {/* 다음 버튼 */}
+                        <button
+                          onClick={() => handlePageChange(currentPage + 1)}
+                          disabled={currentPage === totalPages}
+                          className="relative inline-flex items-center px-2 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <span className="sr-only">다음</span>
+                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </button>
+                      </nav>
+                    </div>
+                  </div>
+                </div>
             )}
           </div>
         </div>
