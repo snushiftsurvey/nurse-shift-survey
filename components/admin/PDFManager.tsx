@@ -25,7 +25,7 @@ interface PDFManagerProps {
 }
 
 export default function PDFManager({ consentRecord, onPDFGenerated }: PDFManagerProps) {
-  const { generatePDFFromExistingData, generating, downloadPDF } = useConsentPDF()
+  const { generateAndSavePDF, generating, error } = useConsentPDF()
   const [generatingPDF, setGeneratingPDF] = useState(false)
 
   const handleGeneratePDF = async () => {
@@ -33,7 +33,19 @@ export default function PDFManager({ consentRecord, onPDFGenerated }: PDFManager
       setGeneratingPDF(true)
       console.log('🔄 관리자에서 PDF 재생성 시작:', consentRecord.survey_id)
       
-      const result = await generatePDFFromExistingData(consentRecord.survey_id)
+      // PDF 재생성을 위한 데이터 구성
+      const pdfData = {
+        survey_id: consentRecord.survey_id,
+        participant_name_signature: consentRecord.consent_signature1 || '',
+        consent_date: consentRecord.consent_date,
+        researcher_name: consentRecord.researcher_name,
+        researcher_signature: consentRecord.researcher_signature,
+        researcher_date: consentRecord.researcher_date,
+        consent_signature1: consentRecord.consent_signature1 || '',
+        consent_signature2: consentRecord.consent_signature2 || consentRecord.consent_signature1 || ''
+      }
+      
+      const result = await generateAndSavePDF(pdfData)
       
       if (result.success) {
         console.log('✅ PDF 재생성 완료')
@@ -54,11 +66,23 @@ export default function PDFManager({ consentRecord, onPDFGenerated }: PDFManager
   const handleDownloadPDF = async (formNumber: 1 | 2) => {
     try {
       console.log(`📥 PDF ${formNumber} 다운로드 시작`)
-      const result = await downloadPDF(consentRecord.survey_id, formNumber)
       
-      if (!result.success) {
-        alert(`PDF 다운로드에 실패했습니다: ${result.error}`)
+      // PDF 데이터가 있으면 직접 다운로드
+      const pdfData = formNumber === 1 ? consentRecord.consent_form1_pdf : consentRecord.consent_form2_pdf
+      
+      if (!pdfData) {
+        alert('PDF 데이터가 없습니다.')
+        return
       }
+      
+      // 파일 다운로드
+      const link = document.createElement('a')
+      link.href = pdfData
+      link.download = `동의서${formNumber}_${consentRecord.survey_id.substring(0, 8)}_${consentRecord.consent_date.replace(/\./g, '')}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
     } catch (error) {
       console.error(`❌ PDF ${formNumber} 다운로드 오류:`, error)
       alert(`PDF 다운로드 중 오류가 발생했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`)

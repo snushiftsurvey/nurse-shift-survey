@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { supabasePublic } from '@/lib/supabase'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 
@@ -26,6 +26,14 @@ export function useConsentPDF() {
     
     try {
       console.log('📄 동의서 PDF 생성 및 저장 시작 (30초 제한)')
+      
+      // 🔍 환경 변수 확인 (배포 디버깅용)
+      console.log('🔧 환경 변수 상태 확인:', {
+        supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ? '설정됨' : '누락됨',
+        anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? '설정됨' : '누락됨',
+        urlValue: process.env.NEXT_PUBLIC_SUPABASE_URL,
+        keyPrefix: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.substring(0, 20) + '...'
+      })
       setGenerating(true)
       setError(null)
 
@@ -41,7 +49,7 @@ export function useConsentPDF() {
 
       // 연구원 정보는 저장 직전에 DB에서 확정값으로 재조회해 사용
       try {
-        const { data: researcherRow, error: researcherErr } = await supabase
+        const { data: researcherRow, error: researcherErr } = await supabasePublic
           .from('researcher_profiles')
           .select('name, signature_image')
           .eq('name', data.researcher_name)
@@ -67,7 +75,7 @@ export function useConsentPDF() {
       console.log('💾 DB 저장 중... (최대 10초)')
       const saveResult = await withTimeout(
         Promise.resolve(
-          supabase
+          supabasePublic
             .from('consent_pdfs')
             .insert({
               survey_id: data.survey_id,
