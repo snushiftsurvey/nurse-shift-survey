@@ -8,6 +8,7 @@ import { createClient } from '@supabase/supabase-js'
 import WorkScheduleViewer from '@/components/admin/WorkScheduleViewer'
 import SurveyLimitsModal from '@/components/admin/SurveyLimitsModal'
 import ConsentDownloader from '@/components/admin/ConsentDownloader'
+import BatchPDFDownloader from '@/components/admin/BatchPDFDownloader'
 
 interface SurveyData {
   id: string
@@ -820,11 +821,6 @@ export default function AdminDashboardPage() {
               ADMIN DASHBOARD
             </h1>
             <div className="flex space-x-3">
-              {/* 선택된 항목 표시 (항상 표시) */}
-              <div className="flex items-center px-3 py-1.5 bg-blue-50 rounded-md text-sm text-blue-700">
-                선택됨: <span className="font-bold ml-1">{selectedSurveyIds.length}</span>개
-              </div>
-              
               {/* 응답자 수 제한 설정 버튼 */}
               <button
                 onClick={() => setShowLimitsModal(true)}
@@ -837,40 +833,6 @@ export default function AdminDashboardPage() {
                 응답자 수 설정
               </button>
               
-              {/* 삭제 버튼 (선택된 항목이 있을 때만) */}
-              {selectedSurveyIds.length > 0 && (
-                <button
-                  onClick={handleDeleteSelected}
-                  disabled={isDeleting}
-                  className="bg-red-600 text-white px-3 py-1.5 rounded-md text-sm hover:bg-red-700 transition-colors disabled:bg-red-400 flex items-center font-medium"
-                >
-                  {isDeleting ? (
-                    <>
-                      <svg className="animate-spin h-4 w-4 mr-1.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      삭제 진행 중...
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                      </svg>
-                      삭제 ({selectedSurveyIds.length}개)
-                    </>
-                  )}
-                </button>
-              )}
-              <button
-                onClick={handleExportCSV}
-                className="bg-green-600 text-white px-3 py-1.5 rounded-md text-sm hover:bg-green-700 transition-colors flex items-center"
-              >
-                <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                </svg>
-                엑셀 다운로드
-              </button>
               <button
                 onClick={async () => {
                   try {
@@ -1068,17 +1030,60 @@ export default function AdminDashboardPage() {
                 </div>
               )}
             </div>
-            {!loading && surveys.length > 0 && (
-              <button 
-                onClick={fetchSurveys}
-                className="text-sm text-blue-600 hover:text-blue-800 flex items-center font-medium"
+            <div className="flex items-center space-x-3">
+              {/* 선택된 항목 표시 */}
+              <div className="flex items-center px-3 py-1.5 bg-blue-50 rounded-md text-sm text-blue-700">
+                선택됨: <span className="font-bold ml-1">{selectedSurveyIds.length}</span>개
+              </div>
+              
+              {/* 삭제 버튼 (선택된 항목이 있을 때만) */}
+              {selectedSurveyIds.length > 0 && (
+                <button
+                  onClick={handleDeleteSelected}
+                  disabled={isDeleting}
+                  className="bg-red-600 text-white px-3 py-1.5 rounded-md text-sm hover:bg-red-700 transition-colors disabled:bg-red-400 flex items-center font-medium"
+                >
+                  {isDeleting ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4 mr-1.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      삭제 진행 중...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                      </svg>
+                      삭제 ({selectedSurveyIds.length}개)
+                    </>
+                  )}
+                </button>
+              )}
+              
+              <button
+                onClick={handleExportCSV}
+                className="bg-green-600 text-white px-3 py-1.5 rounded-md text-sm hover:bg-green-700 transition-colors flex items-center"
               >
-                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                 </svg>
-                 실시간 새로고침
+                엑셀 다운로드
               </button>
-            )}
+              
+              {!loading && surveys.length > 0 && (
+                <button 
+                  onClick={fetchSurveys}
+                  className="text-sm text-blue-600 hover:text-blue-800 flex items-center font-medium"
+                >
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                  </svg>
+                   실시간 새로고침
+                </button>
+              )}
+            </div>
           </div>
           
           <div className="overflow-x-auto">
@@ -1095,7 +1100,8 @@ export default function AdminDashboardPage() {
                 <p>아직 설문 응답이 없습니다.</p>
               </div>
             ) : (
-              <table className="min-w-full divide-y divide-gray-200">
+              <div className="max-h-96 overflow-y-auto">
+                <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="w-12 px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -1165,7 +1171,7 @@ export default function AdminDashboardPage() {
                       개인정보
                     </th>
                     <th className="w-20 px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                      동의서
+                      동의서(pdf)다운
                     </th>
                     <th className="w-24 px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       <button 
@@ -1179,7 +1185,7 @@ export default function AdminDashboardPage() {
                       </button>
                     </th>
                     <th className="w-16 px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                      액션
+                      근무표 상세
                     </th>
                   </tr>
                 </thead>
@@ -1261,6 +1267,7 @@ export default function AdminDashboardPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
             
             {/* 페이지네이션 */}
@@ -1397,6 +1404,11 @@ export default function AdminDashboardPage() {
                 </div>
             )}
           </div>
+        </div>
+
+        {/* PDF 분할 다운로드 섹션 */}
+        <div className="mt-8 mb-6">
+          <BatchPDFDownloader surveys={surveys} />
         </div>
       </main>
 

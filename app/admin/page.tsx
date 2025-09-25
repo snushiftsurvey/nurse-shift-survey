@@ -17,12 +17,10 @@ export default function AdminLoginPage() {
     setIsLoading(true)
     
     try {
-
       const emailFormat = credentials.username === 'admin' 
         ? 'admin@nurseshiftsurvey.local'  // admin → 특별 이메일
         : `${credentials.username}@nurseshiftsurvey.local`  // 기타 → 일반 변환
 
-      
       // 실제 Supabase Auth 로그인
       const { data, error } = await supabase.auth.signInWithPassword({
         email: emailFormat,
@@ -42,7 +40,6 @@ export default function AdminLoginPage() {
       }
 
       if (data.user) {
-
         router.push('/admin/dashboard')
       } else {
         alert('로그인에 실패했습니다.')
