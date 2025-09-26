@@ -113,6 +113,24 @@ export function useConsentPDF() {
         return { success: false, error: 'PDF 생성 시간 초과' }
       }
       
+      // 이미지 로드 에러 특별 처리
+      if (errorMessage.includes('이미지 로드 실패')) {
+        setError('동의서 이미지를 불러올 수 없습니다. 네트워크 연결을 확인하고 다시 시도해주세요.')
+        return { success: false, error: '이미지 로드 실패' }
+      }
+      
+      // CORS 에러 특별 처리
+      if (errorMessage.includes('CORS') || errorMessage.includes('cross-origin')) {
+        setError('보안 정책으로 인해 PDF 생성에 실패했습니다. 관리자에게 문의하세요.')
+        return { success: false, error: 'CORS 에러' }
+      }
+      
+      // RLS 에러 특별 처리
+      if (errorMessage.includes('row-level security')) {
+        setError('데이터베이스 접근 권한 문제입니다. 관리자에게 문의하세요.')
+        return { success: false, error: 'RLS 정책 에러' }
+      }
+      
       setError(`PDF 생성에 실패했습니다: ${errorMessage}`)
       return { success: false, error: errorMessage }
     } finally {
@@ -188,7 +206,7 @@ export function useConsentPDF() {
   // 개별 동의서 페이지를 캔버스로 생성하는 함수
   const generateConsentPageCanvas = async (data: ConsentPDFData, formNumber: 1 | 2): Promise<HTMLCanvasElement> => {
     try {
-
+      console.log(`🎯 동의서 ${formNumber} 캔버스 생성 시작`)
 
       // PDF 생성을 위한 임시 컨테이너 생성
       const tempContainer = document.createElement('div')
@@ -199,28 +217,106 @@ export function useConsentPDF() {
       tempContainer.style.height = '1403px'
       tempContainer.style.backgroundColor = 'white'
       document.body.appendChild(tempContainer)
+      console.log(`✅ 임시 컨테이너 생성 완료`)
 
       // 동의서 이미지와 데이터를 HTML로 렌더링
       const imageSrc = formNumber === 1 
         ? '/images/signature/agree-sig-1.png?v=20250924' 
         : '/images/signature/agree-sig-2.png?v=20250924'
       
+      console.log(`🖼️ 이미지 경로: ${imageSrc}`)
+      
+      // 이미지 로드 테스트 (CORS 문제 대응)
+      const testImage = new Image()
+      testImage.crossOrigin = 'anonymous'
+      
+      const imageLoadPromise = new Promise<string>((resolve, reject) => {
+        testImage.onload = () => {
+          console.log(`✅ 이미지 로드 성공: ${imageSrc}`)
+          
+          // 이미지를 Base64로 변환 (CORS 문제 해결)
+          try {
+            const canvas = document.createElement('canvas')
+            const ctx = canvas.getContext('2d')
+            if (!ctx) throw new Error('Canvas context를 생성할 수 없습니다')
+            
+            canvas.width = testImage.naturalWidth
+            canvas.height = testImage.naturalHeight
+            ctx.drawImage(testImage, 0, 0)
+            
+            const base64 = canvas.toDataURL('image/png')
+            console.log(`✅ 이미지 Base64 변환 성공`)
+            resolve(base64)
+          } catch (conversionError) {
+            console.warn(`⚠️ Base64 변환 실패, 원본 URL 사용:`, conversionError)
+            resolve(imageSrc)
+          }
+        }
+        testImage.onerror = (error) => {
+          console.error(`❌ 이미지 로드 실패: ${imageSrc}`, error)
+          reject(new Error(`이미지 로드 실패: ${imageSrc}`))
+        }
+        testImage.src = imageSrc
+      })
+      
+      const resolvedImageSrc = await imageLoadPromise
+      
       tempContainer.innerHTML = await createConsentHTML(
-        imageSrc,
+        resolvedImageSrc,
         data,
         formNumber
       )
+      console.log(`✅ HTML 생성 완료`)
+
+      // 서명 이미지들 로드 확인
+      const signatureImages = tempContainer.querySelectorAll('img')
+      console.log(`🔍 서명 이미지 개수: ${signatureImages.length}`)
+      
+      // 모든 이미지가 로드될 때까지 대기
+      const imageLoadPromises = Array.from(signatureImages).map((img, index) => {
+        return new Promise<void>((resolve) => {
+          if (img.complete) {
+            console.log(`✅ 서명 이미지 ${index + 1} 이미 로드됨`)
+            resolve()
+          } else {
+            img.onload = () => {
+              console.log(`✅ 서명 이미지 ${index + 1} 로드 완료`)
+              resolve()
+            }
+            img.onerror = () => {
+              console.warn(`⚠️ 서명 이미지 ${index + 1} 로드 실패, 계속 진행`)
+              resolve()
+            }
+          }
+        })
+      })
+      
+      await Promise.all(imageLoadPromises)
+      console.log(`✅ 모든 이미지 로드 확인 완료`)
 
       // html2canvas로 캡처 (최적화된 설정)
+      console.log(`📸 html2canvas 캡처 시작...`)
       const canvas = await html2canvas(tempContainer, {
         width: 992,
         height: 1403,
         scale: 1,
         useCORS: true,
-        allowTaint: false,
+        allowTaint: true, // Base64 이미지 사용을 위해 allowTaint 허용
         backgroundColor: 'white',
-        logging: false
+        logging: true, // 배포 디버깅을 위해 로깅 활성화
+        ignoreElements: (element) => {
+          // 로드 실패한 이미지는 건너뛰기
+          if (element.tagName === 'IMG' && !(element as HTMLImageElement).complete) {
+            console.warn(`⚠️ 로드되지 않은 이미지 무시:`, (element as HTMLImageElement).src)
+            return true
+          }
+          return false
+        },
+        onclone: (clonedDoc) => {
+          console.log(`🔄 DOM 복제 완료`)
+        }
       })
+      console.log(`✅ html2canvas 캡처 완료`)
       
       // 임시 컨테이너 제거
       document.body.removeChild(tempContainer)
@@ -229,6 +325,10 @@ export function useConsentPDF() {
 
     } catch (error) {
       console.error(`❌ 캔버스 생성 오류 (동의서 ${formNumber}):`, error)
+      console.error(`❌ 오류 상세:`, {
+        message: error instanceof Error ? error.message : '알 수 없는 오류',
+        stack: error instanceof Error ? error.stack : undefined
+      })
       throw error
     }
   }

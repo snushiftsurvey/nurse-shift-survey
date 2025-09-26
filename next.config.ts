@@ -16,6 +16,34 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+
+  // PDF 생성을 위한 정적 파일 CORS 설정
+  async headers() {
+    return [
+      {
+        // 이미지 파일에 CORS 헤더 추가
+        source: '/images/:path*',
+        headers: [
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: '*',
+          },
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET, OPTIONS',
+          },
+          {
+            key: 'Access-Control-Allow-Headers',
+            value: 'Content-Type',
+          },
+          {
+            key: 'Cross-Origin-Resource-Policy',
+            value: 'cross-origin',
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

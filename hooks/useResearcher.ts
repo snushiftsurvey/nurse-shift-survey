@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
+import { supabasePublic } from '@/lib/supabase'
 
 interface ResearcherProfile {
   id: string
@@ -22,7 +22,7 @@ export function useResearcher() {
       setLoading(true)
       
       // 활성 연구원 정보 조회 (첫 번째 활성 연구원)
-      const { data, error } = await supabase
+      const { data, error } = await supabasePublic
         .from('researcher_profiles')
         .select('*')
         .eq('is_active', true)
@@ -46,7 +46,7 @@ export function useResearcher() {
     if (!researcher) return
 
     try {
-      const { error } = await supabase
+      const { error } = await supabasePublic
         .from('researcher_profiles')
         .update({
           name,
