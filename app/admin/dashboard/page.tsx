@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { supabase, safeQuery } from '@/lib/supabase'
 import WorkScheduleViewer from '@/components/admin/WorkScheduleViewer'
 import SurveyLimitsModal from '@/components/admin/SurveyLimitsModal'
 import ConsentDownloader from '@/components/admin/ConsentDownloader'
@@ -198,36 +198,41 @@ export default function AdminDashboardPage() {
     )
   }
 
-  // 특정 설문의 상세 정보 조회 (근무표 포함)
+  // 특정 설문의 상세 정보 조회 (근무표 포함) - AutoWake 적용
   const fetchSurveyDetail = async (surveyId: string) => {
     try {
       setScheduleLoading(true)
 
-      const { data, error: fetchError } = await supabase
-        .from('surveys')
-        .select(`
-          id,
-          gender,
-          age,
-          hire_year,
-          hire_month,
-          medical_institution_type,
-          medical_institution_location,
-          department,
-          consent_personal_info,
-          created_at,
-          work_types,
-          off_duty_types,
-          shift_data,
-          personal_info(id, name, birth_date, phone_number)
-        `)
-        .eq('id', surveyId)
-        .eq('is_draft', false) // draft 데이터 제외
-        .single()
+      const data = await safeQuery.admin(async () => {
+        const { data, error } = await supabase
+          .from('surveys')
+          .select(`
+            id,
+            gender,
+            age,
+            hire_year,
+            hire_month,
+            medical_institution_type,
+            medical_institution_location,
+            department,
+            consent_personal_info,
+            created_at,
+            work_types,
+            off_duty_types,
+            shift_data,
+            personal_info(id, name, birth_date, phone_number)
+          `)
+          .eq('id', surveyId)
+          .eq('is_draft', false) // draft 데이터 제외
+          .single()
 
-      if (fetchError) {
-        throw fetchError
-      }
+        if (error) {
+          console.error('🔄 설문 상세 정보 조회 실패:', error)
+          throw error
+        }
+
+        return data
+      })
 
       const detailedSurvey: DetailedSurveyData = {
         ...data,
@@ -237,8 +242,9 @@ export default function AdminDashboardPage() {
 
       setSelectedSurvey(detailedSurvey)
       setShowScheduleModal(true)
+      console.log('✅ 설문 상세 정보 조회 성공 (AutoWake 적용):', surveyId)
     } catch (err) {
-      console.error('설문 상세 정보 조회 실패:', err)
+      console.error('❌ 설문 상세 정보 조회 실패:', err)
       alert('설문 상세 정보를 불러오는 중 오류가 발생했습니다.')
     } finally {
       setScheduleLoading(false)
@@ -247,26 +253,26 @@ export default function AdminDashboardPage() {
 
 
 
-  // 부서별 통계 및 제한 조회
+  // 부서별 통계 및 제한 조회 - AutoWake 적용
   const fetchDepartmentStats = async () => {
     try {
-      console.log('📊 부서별 통계 조회 시작...')
+      console.log('📊 부서별 통계 조회 시작 (AutoWake 적용)...')
 
-      // 1. 제한 설정 조회
-      const { data: limits, error: limitsError } = await supabase
-        .from('survey_limits')
-        .select('*')
-      
-      if (limitsError) {
-        console.error('❌ 응답자 수 제한 설정 조회 실패:', {
-          code: limitsError.code,
-          message: limitsError.message,
-          details: limitsError.details
-        })
-        return
-      }
+      // 1. 제한 설정 조회 - AutoWake 적용
+      const limits = await safeQuery.admin(async () => {
+        const { data, error } = await supabase
+          .from('survey_limits')
+          .select('*')
+        
+        if (error) {
+          console.error('🔄 응답자 수 제한 설정 조회 실패:', error)
+          throw error
+        }
 
-      console.log('✅ 제한 설정 조회 성공:', limits?.length, '개')
+        return data
+      })
+
+      console.log('✅ 제한 설정 조회 성공 (AutoWake 적용):', limits?.length, '개')
       setLimitsData(limits || [])
 
       // 2. 부서별 현재 응답 수 조회
@@ -281,32 +287,34 @@ export default function AdminDashboardPage() {
       for (const dept of departments) {
         console.log(`🔍 ${dept.name} 응답 수 조회...`)
         
-        // 현재 응답 수 조회
-        const { count: currentCount, error: countError } = await supabase
-          .from('surveys')
-          .select('*', { count: 'exact', head: true })
-          .eq('department', dept.key)
-          .eq('is_draft', false) // draft 데이터 제외
-        
-        if (countError) {
-          console.error(`❌ ${dept.key} 응답 수 조회 실패:`, {
-            code: countError.code,
-            message: countError.message,
-            details: countError.details
-          })
-          continue
-        }
+        // 현재 응답 수 조회 - AutoWake 적용
+        const countResult = await safeQuery.admin(async () => {
+          const { count, error } = await supabase
+            .from('surveys')
+            .select('*', { count: 'exact', head: true })
+            .eq('department', dept.key)
+            .eq('is_draft', false) // draft 데이터 제외
+          
+          if (error) {
+            console.error(`🔄 ${dept.key} 응답 수 조회 실패:`, error)
+            throw error
+          }
+
+          return { count }
+        })
+
+        const currentCount = countResult?.count || 0
 
         // 제한 값 찾기  
         const limitSetting = limits?.find((l: any) => l.setting_name === `${dept.key.replace('-', '_')}_limit`)
         const limit = limitSetting?.setting_value || 0
 
         stats[dept.key] = {
-          current: currentCount || 0,
+          current: currentCount,
           limit: limit
         }
 
-        console.log(`✅ ${dept.name}: ${currentCount}/${limit}`)
+        console.log(`✅ ${dept.name}: ${currentCount}/${limit} (AutoWake 적용)`)
       }
 
       setDepartmentStats(stats)
@@ -338,51 +346,50 @@ export default function AdminDashboardPage() {
         throw new Error('인증이 필요합니다. 다시 로그인해주세요.')
       }
 
-      console.log('🔍 최적화된 설문 데이터 쿼리 실행 (전체 데이터, PDF 제외)...')
+      console.log('🔍 최적화된 설문 데이터 쿼리 실행 (AutoWake 적용, 전체 데이터, PDF 제외)...')
       
-      // 전체 설문 데이터 조회 (PDF 바이너리 데이터만 제외하여 빠른 로딩)
-      const { data, error: fetchError } = await supabase
-        .from('surveys')
-        .select(`
-          id,
-          gender,
-          age,
-          hire_year,
-          hire_month,
-          medical_institution_type,
-          medical_institution_location,
-          department,
-          consent_personal_info,
-          created_at,
-          personal_info(id),
-          consent_pdfs(
+      // 전체 설문 데이터 조회 (PDF 바이너리 데이터만 제외하여 빠른 로딩) - AutoWake 적용
+      const data = await safeQuery.admin(async () => {
+        const { data, error } = await supabase
+          .from('surveys')
+          .select(`
             id,
-            survey_id, 
-            consent_date,
-            researcher_name,
-            created_at
-          )
-        `)
-        .eq('is_draft', false) // draft 데이터 제외
-        .order('created_at', { ascending: false })
+            gender,
+            age,
+            hire_year,
+            hire_month,
+            medical_institution_type,
+            medical_institution_location,
+            department,
+            consent_personal_info,
+            created_at,
+            personal_info(id),
+            consent_pdfs(
+              id,
+              survey_id, 
+              consent_date,
+              researcher_name,
+              created_at
+            )
+          `)
+          .eq('is_draft', false) // draft 데이터 제외
+          .order('created_at', { ascending: false })
 
-      if (fetchError) {
-        console.error('❌ 설문 데이터 쿼리 실패:', {
-          code: fetchError.code,
-          message: fetchError.message,
-          details: fetchError.details,
-          hint: fetchError.hint
-        })
-        
-        // 타임아웃 에러인 경우 특별 처리
-        if (fetchError.code === '57014') {
-          throw new Error('데이터가 너무 많아 조회 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.')
+        if (error) {
+          console.error('🔄 설문 데이터 쿼리 실패:', error)
+          
+          // 타임아웃 에러인 경우 특별 처리
+          if (error.code === '57014') {
+            throw new Error('데이터가 너무 많아 조회 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.')
+          }
+          
+          throw new Error(`데이터 조회 실패: ${error.message} (${error.code})`)
         }
-        
-        throw new Error(`데이터 조회 실패: ${fetchError.message} (${fetchError.code})`)
-      }
 
-      console.log(`✅ 전체 설문 데이터 조회 성공:`, data?.length, '개')
+        return data
+      })
+
+      console.log(`✅ 전체 설문 데이터 조회 성공 (AutoWake 적용):`, data?.length, '개')
 
       if (!data) {
         console.log('📄 설문 데이터가 존재하지 않습니다')
@@ -681,18 +688,21 @@ export default function AdminDashboardPage() {
       let successCount = 0
       let failedIds = []
 
-      // 삭제 전 실제 존재 여부 확인
- 
-      const { data: existingData, error: checkError } = await deleteClient
-        .from('surveys')
-        .select('id')
-        .in('id', selectedSurveyIds)
-        .eq('is_draft', false) // draft 데이터는 삭제 대상에서 제외
-      
-      if (checkError) {
-        console.error('❌ 존재 여부 확인 실패:', checkError)
-        throw checkError
-      }
+      // 삭제 전 실제 존재 여부 확인 - AutoWake 적용
+      const existingData = await safeQuery.admin(async () => {
+        const { data, error } = await deleteClient
+          .from('surveys')
+          .select('id')
+          .in('id', selectedSurveyIds)
+          .eq('is_draft', false) // draft 데이터는 삭제 대상에서 제외
+        
+        if (error) {
+          console.error('🔄 존재 여부 확인 실패:', error)
+          throw error
+        }
+
+        return data
+      })
 
       const existingIds = existingData?.map((item: any) => item.id) || []
       console.log('📊 실제 존재하는 ID들:', existingIds.length, '개')
@@ -711,37 +721,57 @@ export default function AdminDashboardPage() {
         throw new Error('인증되지 않은 사용자')
       }
 
-      // 🗂️ 1단계: 연관된 consent_pdfs 데이터 일괄 삭제 (성능 최적화)
-      console.log(`📄 연관 PDF 데이터 일괄 삭제: ${existingIds.length}개`)
-      const { error: pdfBulkDeleteError, count: pdfDeleteCount } = await deleteClient
-        .from('consent_pdfs')
-        .delete()
-        .in('survey_id', existingIds)
+      // 🗂️ 1단계: 연관된 consent_pdfs 데이터 일괄 삭제 (성능 최적화) - AutoWake 적용
+      console.log(`📄 연관 PDF 데이터 일괄 삭제 (AutoWake 적용): ${existingIds.length}개`)
       
-      if (pdfBulkDeleteError) {
-        console.warn(`⚠️ PDF 일괄 삭제 실패:`, pdfBulkDeleteError.message)
+      const pdfDeleteResult = await safeQuery.admin(async () => {
+        const { error, count } = await deleteClient
+          .from('consent_pdfs')
+          .delete()
+          .in('survey_id', existingIds)
+        
+        if (error) {
+          console.warn(`🔄 PDF 일괄 삭제 실패:`, error.message)
+          // PDF 삭제 실패는 치명적이지 않으므로 에러를 던지지 않음
+          return { success: false, count: 0, error: error.message }
+        }
+
+        return { success: true, count: count || 0, error: null }
+      })
+      
+      if (pdfDeleteResult.success) {
+        console.log(`✅ PDF 데이터 일괄 삭제 완료 (AutoWake 적용): ${pdfDeleteResult.count}개`)
       } else {
-        console.log(`✅ PDF 데이터 일괄 삭제 완료: ${pdfDeleteCount || 0}개`)
+        console.warn(`⚠️ PDF 일괄 삭제 실패 (AutoWake 적용):`, pdfDeleteResult.error)
       }
 
-      // 🚨 2단계: 설문 데이터 일괄 삭제 (성능 최적화)
-      console.log(`🔥 설문 일괄 삭제 시도: ${existingIds.length}개`)
-      const { error: surveyBulkDeleteError } = await deleteClient
-        .from('surveys')
-        .delete()
-        .in('id', existingIds)
-        .eq('is_draft', false) // draft 데이터는 삭제하지 않음
+      // 🚨 2단계: 설문 데이터 일괄 삭제 (성능 최적화) - AutoWake 적용
+      console.log(`🔥 설문 일괄 삭제 시도 (AutoWake 적용): ${existingIds.length}개`)
       
-      console.log('🔍 설문 일괄 삭제 결과:')
-      console.log('  - error:', surveyBulkDeleteError)
+      const surveyDeleteResult = await safeQuery.admin(async () => {
+        const { error } = await deleteClient
+          .from('surveys')
+          .delete()
+          .in('id', existingIds)
+          .eq('is_draft', false) // draft 데이터는 삭제하지 않음
+        
+        if (error) {
+          console.error(`🔄 설문 일괄 삭제 실패:`, error)
+          throw error
+        }
 
-      if (surveyBulkDeleteError) {
-        console.error(`❌ 설문 일괄 삭제 실패:`, surveyBulkDeleteError)
-        failedIds = existingIds
-      } else {
+        return { success: true }
+      })
+      
+      console.log('🔍 설문 일괄 삭제 결과 (AutoWake 적용):')
+      console.log('  - success:', surveyDeleteResult.success)
+
+      if (surveyDeleteResult.success) {
         // Supabase delete는 count를 반환하지 않으므로, 요청한 갯수 기준으로 성공 처리
         successCount = existingIds.length
-        console.log(`✅ 설문 일괄 삭제 성공: ${successCount}개`)
+        console.log(`✅ 설문 일괄 삭제 성공 (AutoWake 적용): ${successCount}개`)
+      } else {
+        failedIds = existingIds
       }
 
       console.log(`📊 삭제 완료: ${successCount}개 성공, ${failedIds.length}개 실패`)
@@ -872,6 +902,7 @@ export default function AdminDashboardPage() {
               ADMIN DASHBOARD
             </h1>
             <div className="flex space-x-3">
+          
               {/* 응답자 수 제한 설정 버튼 */}
               <button
                 onClick={() => setShowLimitsModal(true)}

@@ -64,15 +64,12 @@ export function useConsentPDF() {
       }
 
       // PDF 생성 (2페이지로 합침, 타임아웃 적용)
-      console.log('📄 통합 PDF 생성 중... (최대 20초)')
+
       const combinedPDF = await withTimeout(
         generateCombinedConsentPDF(data), 
         20000 // 20초
       )
-      console.log('✅ 통합 PDF 생성 완료')
 
-      // DB 저장 (타임아웃 적용)
-      console.log('💾 DB 저장 중... (최대 10초)')
       const saveResult = await withTimeout(
         Promise.resolve(
           supabasePublic
@@ -270,17 +267,17 @@ export function useConsentPDF() {
 
       // 서명 이미지들 로드 확인
       const signatureImages = tempContainer.querySelectorAll('img')
-      console.log(`🔍 서명 이미지 개수: ${signatureImages.length}`)
+
       
       // 모든 이미지가 로드될 때까지 대기
       const imageLoadPromises = Array.from(signatureImages).map((img, index) => {
         return new Promise<void>((resolve) => {
           if (img.complete) {
-            console.log(`✅ 서명 이미지 ${index + 1} 이미 로드됨`)
+          
             resolve()
           } else {
             img.onload = () => {
-              console.log(`✅ 서명 이미지 ${index + 1} 로드 완료`)
+              
               resolve()
             }
             img.onerror = () => {
@@ -292,10 +289,9 @@ export function useConsentPDF() {
       })
       
       await Promise.all(imageLoadPromises)
-      console.log(`✅ 모든 이미지 로드 확인 완료`)
 
       // html2canvas로 캡처 (최적화된 설정)
-      console.log(`📸 html2canvas 캡처 시작...`)
+  
       const canvas = await html2canvas(tempContainer, {
         width: 992,
         height: 1403,
@@ -316,7 +312,7 @@ export function useConsentPDF() {
           console.log(`🔄 DOM 복제 완료`)
         }
       })
-      console.log(`✅ html2canvas 캡처 완료`)
+
       
       // 임시 컨테이너 제거
       document.body.removeChild(tempContainer)

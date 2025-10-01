@@ -1,5 +1,5 @@
 import { useSurvey as useContextSurvey } from '@/contexts/SurveyContext'
-import { supabasePublic } from '@/lib/supabase'
+import { supabasePublic, safeQuery } from '@/lib/supabase'
 import { SurveyData, PersonalInfo } from '@/lib/types'
 import { useCallback } from 'react'
 
@@ -70,18 +70,22 @@ export function useSurvey() {
       }
 
 
-      const { data: surveyResponse, error: surveyError } = await supabasePublic
-        .from('surveys')
-        .insert([surveyInsertData])
-        .select()
-        .single()
+      const surveyResponse = await safeQuery.public(async () => {
+        const { data, error } = await supabasePublic
+          .from('surveys')
+          .insert([surveyInsertData])
+          .select()
+          .single()
+        
+        if (error) {
+          console.error('🔄 surveys 테이블 저장 실패:', error)
+          throw error
+        }
+        
+        return data
+      })
 
-      if (surveyError) {
-        console.error(' surveys 테이블 저장 실패:', surveyError)
-        throw surveyError
-      }
-
-     // console.log(' surveys 테이블 저장 성공:', surveyResponse)
+      console.log('✅ surveys 테이블 저장 성공 (AutoWake 적용):', surveyResponse.id)
 
       if (finalConsentPersonalInfo && finalPersonalInfo.name) {
         console.log(' 개인정보 저장 조건 충족 - DB 저장 시작')
@@ -95,17 +99,21 @@ export function useSurvey() {
         
 
         
-        const { data: personalResult, error: personalError } = await supabasePublic
-          .from('personal_info')
-          .insert([personalInfoData])
-          .select()
+        const personalResult = await safeQuery.public(async () => {
+          const { data, error } = await supabasePublic
+            .from('personal_info')
+            .insert([personalInfoData])
+            .select()
 
-        if (personalError) {
-          console.error(' 개인정보 저장 실패:', personalError)
-          throw personalError
-        } else {
-          console.log(' 개인정보 저장 성공:', personalResult)
-        }
+          if (error) {
+            console.error('🔄 개인정보 저장 실패:', error)
+            throw error
+          }
+          
+          return data
+        })
+        
+        console.log('✅ 개인정보 저장 성공 (AutoWake 적용):', personalResult)
       } else {
 
         if (!finalConsentPersonalInfo) {
@@ -138,19 +146,39 @@ export function useSurvey() {
       const limitName = departmentLimitMap[selectedDepartment]
       if (!limitName) return
 
-      const { data: limitData } = await supabasePublic
-        .from('survey_limits')
-        .select('setting_value')
-        .eq('setting_name', limitName)
-        .single()
+      const limitData = await safeQuery.public(async () => {
+        const { data, error } = await supabasePublic
+          .from('survey_limits')
+          .select('setting_value')
+          .eq('setting_name', limitName)
+          .single()
+          
+        if (error) {
+          console.warn('🔄 부서별 제한 조회 실패:', error)
+          return null
+        }
+        
+        return data
+      })
 
       const deptLimit = limitData?.setting_value
       if (!deptLimit) return
 
-      const { count: deptCount } = await supabasePublic
-        .from('surveys')
-        .select('*', { count: 'exact', head: true })
-        .eq('department', selectedDepartment)
+      const deptCountResult = await safeQuery.public(async () => {
+        const { count, error } = await supabasePublic
+          .from('surveys')
+          .select('*', { count: 'exact', head: true })
+          .eq('department', selectedDepartment)
+          
+        if (error) {
+          console.warn('🔄 부서별 개수 조회 실패:', error)
+          return null
+        }
+        
+        return { count }
+      })
+
+      const deptCount = deptCountResult?.count
 
       if (deptCount && deptCount >= deptLimit) {
         const deptName = selectedDepartment === 'general-ward' ? '일반병동' :
