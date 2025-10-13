@@ -43,6 +43,24 @@ export default function AdminLoginPage() {
     try {
       console.log('🔐 Admin 로그인 시도 시작')
       
+      // 🔄 1단계: Supabase 연결 확인 및 자동 깨우기
+      console.log('🔄 Supabase 연결 상태 확인 중...')
+      const connectionOk = await safeQuery.admin(async () => {
+        const { data } = await supabase.from('surveys').select('id').limit(1)
+        return true
+      }).catch(async (err: any) => {
+        console.warn('⚠️ 연결 실패 감지, 깨우기 시도...', err)
+        return false
+      })
+      
+      if (!connectionOk) {
+        console.log('🛌 일시정지 상태 감지됨. 수동 복원이 필요합니다.')
+        alert('데이터베이스가 일시정지 상태입니다.\nSupabase 대시보드에서 "Restore project"를 클릭해주세요.')
+        return
+      }
+      
+      console.log('✅ Supabase 연결 정상')
+      
       // Admin 세션 상태만 확인 및 정리 (설문 웹과 독립적)
       const { data: { session: existingSession } } = await supabase.auth.getSession()
       if (existingSession) {

@@ -87,6 +87,11 @@ class ErrorHandler {
         isPauseRelated: errorLog.isPauseRelated
       })
     }
+
+    // Slack 알림 전송 (서버 환경에서만)
+    if (typeof window === 'undefined' && process.env.SLACK_WEBHOOK_URL) {
+      this.sendSlackAlert(errorLog)
+    }
   }
 
   /**
@@ -167,6 +172,55 @@ class ErrorHandler {
       errorMessage.toLowerCase().includes(indicator.toLowerCase()) ||
       errorCode.toString().includes(indicator)
     )
+  }
+
+  /**
+   * Slack 알림 전송
+   */
+  private async sendSlackAlert(errorLog: ErrorLog) {
+    try {
+      const isPauseRelated = errorLog.isPauseRelated ? ' (일시정지 관련)' : ''
+      const emoji = errorLog.level === 'critical' ? '🔥' : '🚨'
+      const projectName = process.env.PROJECT_NAME || 'Nurse Shift Survey'
+      
+      await fetch(process.env.SLACK_WEBHOOK_URL!, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: `${emoji} [${projectName}] ${errorLog.message}${isPauseRelated} <!here>`,
+          attachments: [{
+            color: errorLog.level === 'critical' ? 'danger' : 'warning',
+            fields: [
+              { 
+                title: 'URL', 
+                value: errorLog.context?.url || 'Unknown', 
+                short: true 
+              },
+              { 
+                title: '시간', 
+                value: new Date(errorLog.timestamp).toLocaleString('ko-KR'), 
+                short: true 
+              },
+              { 
+                title: '레벨', 
+                value: errorLog.level.toUpperCase(), 
+                short: true 
+              },
+              { 
+                title: '컴포넌트', 
+                value: errorLog.context?.component || 'Unknown', 
+                short: true 
+              }
+            ],
+            footer: errorLog.isPauseRelated ? 'Supabase 일시정지 감지됨' : 'Nurse Shift Survey',
+            ts: Math.floor(new Date(errorLog.timestamp).getTime() / 1000)
+          }]
+        })
+      })
+    } catch (slackError) {
+      // Slack 전송 실패는 콘솔에만 로그 (무한루프 방지)
+      console.warn('[ErrorHandler] Slack 알림 전송 실패:', slackError)
+    }
   }
 
   /**
