@@ -1,4 +1,4 @@
-/* CSS Version: 2025.01.24-v2 - Pull-to-Refresh 완전 차단 강화 */
+/* CSS Version: 2025.01.24-v3 - 0d3a317 버전 Pull-to-Refresh 로직 통합 */
 @import "tailwindcss";
 
 :root {
@@ -27,9 +27,24 @@ body {
   font-weight: 500;
   /* SpoqaHanSansNeo-Medium을 기본으로 설정 */
 
-  /* Pull-to-Refresh 방지 (모바일) */
-  overscroll-behavior-y: contain;
+  /* Pull-to-Refresh 방지 강화 (모바일) - 0d3a317 버전 */
+  overscroll-behavior: none !important;
+  overscroll-behavior-y: none !important;
   -webkit-overflow-scrolling: touch;
+}
+
+/* 루트 요소에서도 Pull-to-Refresh 차단 */
+html {
+  overscroll-behavior: none !important;
+  overscroll-behavior-y: none !important;
+}
+
+/* 서명 입력 영역 Pull-to-Refresh 완전 차단 */
+.signature-input-area {
+  touch-action: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  overscroll-behavior: none !important;
 }
 
 /* 전자서명 캔버스 스타일 - Pull-to-Refresh 완전 차단 */

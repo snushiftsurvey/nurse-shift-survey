@@ -131,12 +131,59 @@ export default function UnifiedSignatureModal({
     }
   }
 
+  // Pull-to-Refresh 방지 강화 (0d3a317 버전 로직)
+  useEffect(() => {
+    if (!isOpen) return
+
+    let startY = 0
+
+    const preventPullToRefresh = (e: TouchEvent) => {
+      const touchY = e.touches[0].clientY
+      const deltaY = touchY - startY
+
+      // 페이지 최상단에서 아래로 당기는 동작 차단
+      if (window.scrollY === 0 && deltaY > 0) {
+        e.preventDefault()
+      }
+    }
+
+    const handleTouchStart = (e: TouchEvent) => {
+      startY = e.touches[0].clientY
+    }
+
+    document.addEventListener('touchstart', handleTouchStart, { passive: true })
+    document.addEventListener('touchmove', preventPullToRefresh, { passive: false })
+
+    return () => {
+      document.removeEventListener('touchstart', handleTouchStart)
+      document.removeEventListener('touchmove', preventPullToRefresh)
+    }
+  }, [isOpen])
+
   return (
-    <div className="fixed inset-0 bg-white z-50 flex items-center justify-center" style={{
-      width: '100vw',
-      height: '100dvh',
-      overscrollBehavior: 'contain'
-    }}>
+    <div 
+      className="fixed inset-0 bg-white z-50 flex items-center justify-center" 
+      style={{
+        width: '100vw',
+        height: '100dvh',
+        overscrollBehavior: 'none',
+        touchAction: 'none',
+        position: 'fixed',
+        WebkitOverflowScrolling: 'touch'
+      }}
+      onTouchStart={(e) => {
+        // 멀티터치 방지
+        if (e.touches.length > 1) {
+          e.preventDefault()
+        }
+      }}
+      onTouchMove={(e) => {
+        // 모달 내에서 스크롤 방지
+        if (e.target === e.currentTarget) {
+          e.preventDefault()
+        }
+      }}
+    >
       <div className="w-full max-w-md mx-auto p-6 flex flex-col h-full">
         {/* 헤더 */}
         <div className="text-center mb-6">
@@ -158,7 +205,18 @@ export default function UnifiedSignatureModal({
         <div className="flex-1 flex flex-col">
           {currentStep === 1 && (
             <div className="flex-1 flex flex-col">
-              <div className="border-2 border-gray-300 rounded-lg bg-white" style={{ height: '150px' }}>
+              <div 
+                className="border-2 border-gray-300 rounded-lg bg-white signature-input-area" 
+                style={{ height: '150px', touchAction: 'none' }}
+                onTouchStart={(e) => {
+                  e.stopPropagation()
+                  e.preventDefault()
+                }}
+                onTouchMove={(e) => {
+                  e.stopPropagation()
+                  e.preventDefault()
+                }}
+              >
                 <SignatureCanvas
                   ref={nameCanvasRef}
                   canvasProps={{
@@ -174,7 +232,18 @@ export default function UnifiedSignatureModal({
 
           {currentStep === 2 && (
             <div className="flex-1 flex flex-col">
-              <div className="border-2 border-gray-300 rounded-lg bg-white" style={{ height: '150px' }}>
+              <div 
+                className="border-2 border-gray-300 rounded-lg bg-white signature-input-area" 
+                style={{ height: '150px', touchAction: 'none' }}
+                onTouchStart={(e) => {
+                  e.stopPropagation()
+                  e.preventDefault()
+                }}
+                onTouchMove={(e) => {
+                  e.stopPropagation()
+                  e.preventDefault()
+                }}
+              >
                 <SignatureCanvas
                   ref={signatureCanvasRef}
                   canvasProps={{
