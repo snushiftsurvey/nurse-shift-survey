@@ -135,8 +135,10 @@ export default function UnifiedSignatureModal({
 
   // 카카오톡 인앱 브라우저 터치 이벤트 제어 (성명)
   useEffect(() => {
+    if (!isOpen || currentStep !== 1) return
+    
     const container = nameContainerRef.current
-    if (!container || currentStep !== 1) return
+    if (!container) return
 
     let startY = 0
 
@@ -144,41 +146,35 @@ export default function UnifiedSignatureModal({
       if (e.touches && e.touches.length > 0) {
         startY = e.touches[0].clientY
       }
-      e.preventDefault()
-      e.stopPropagation()
     }
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (e.touches && e.touches.length > 0) {
-        const currentY = e.touches[0].clientY
-        const deltaY = currentY - startY
-      }
+      if (!e.touches || e.touches.length === 0) return
       
-      // 모든 스크롤 동작 차단 (위아래)
-      e.preventDefault()
-      e.stopPropagation()
+      const currentY = e.touches[0].clientY
+      const deltaY = currentY - startY
+      
+      // Pull-to-Refresh만 차단 (아래로 당기는 동작)
+      if (deltaY > 5 && window.scrollY === 0) {
+        e.preventDefault()
+      }
     }
 
-    const handleTouchEnd = (e: TouchEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-    }
-
-    container.addEventListener('touchstart', handleTouchStart, { passive: false })
+    container.addEventListener('touchstart', handleTouchStart, { passive: true })
     container.addEventListener('touchmove', handleTouchMove, { passive: false })
-    container.addEventListener('touchend', handleTouchEnd, { passive: false })
 
     return () => {
       container.removeEventListener('touchstart', handleTouchStart)
       container.removeEventListener('touchmove', handleTouchMove)
-      container.removeEventListener('touchend', handleTouchEnd)
     }
-  }, [currentStep])
+  }, [isOpen, currentStep])
 
   // 카카오톡 인앱 브라우저 터치 이벤트 제어 (서명)
   useEffect(() => {
+    if (!isOpen || currentStep !== 2) return
+    
     const container = signatureContainerRef.current
-    if (!container || currentStep !== 2) return
+    if (!container) return
 
     let startY = 0
 
@@ -186,36 +182,28 @@ export default function UnifiedSignatureModal({
       if (e.touches && e.touches.length > 0) {
         startY = e.touches[0].clientY
       }
-      e.preventDefault()
-      e.stopPropagation()
     }
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (e.touches && e.touches.length > 0) {
-        const currentY = e.touches[0].clientY
-        const deltaY = currentY - startY
-      }
+      if (!e.touches || e.touches.length === 0) return
       
-      // 모든 스크롤 동작 차단 (위아래)
-      e.preventDefault()
-      e.stopPropagation()
+      const currentY = e.touches[0].clientY
+      const deltaY = currentY - startY
+      
+      // Pull-to-Refresh만 차단 (아래로 당기는 동작)
+      if (deltaY > 5 && window.scrollY === 0) {
+        e.preventDefault()
+      }
     }
 
-    const handleTouchEnd = (e: TouchEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-    }
-
-    container.addEventListener('touchstart', handleTouchStart, { passive: false })
+    container.addEventListener('touchstart', handleTouchStart, { passive: true })
     container.addEventListener('touchmove', handleTouchMove, { passive: false })
-    container.addEventListener('touchend', handleTouchEnd, { passive: false })
 
     return () => {
       container.removeEventListener('touchstart', handleTouchStart)
       container.removeEventListener('touchmove', handleTouchMove)
-      container.removeEventListener('touchend', handleTouchEnd)
     }
-  }, [currentStep])
+  }, [isOpen, currentStep])
 
   if (!isOpen) return null
 
