@@ -305,8 +305,8 @@ export default function AdminDashboardPage() {
 
         const currentCount = countResult?.count || 0
 
-        // 제한 값 찾기  
-        const limitSetting = limits?.find((l: any) => l.setting_name === `${dept.key.replace('-', '_')}_limit`)
+        // 제한 값 찾기 (모든 하이픈을 언더스코어로 변환)
+        const limitSetting = limits?.find((l: any) => l.setting_name === `${dept.key.replaceAll('-', '_')}_limit`)
         const limit = limitSetting?.setting_value || 0
 
         stats[dept.key] = {

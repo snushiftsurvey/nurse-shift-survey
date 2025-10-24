@@ -287,15 +287,6 @@ export default function ConsentPage() {
             imageSrc="/images/signature/agree-sig-1.png?0924?2025-0924"
             signatureKey="signature1"
             title="첫 번째 동의서"
-            researcherData={researcher ? {
-              name: researcher.name,
-              signature: researcher.signature_image,
-              date: new Date().toLocaleDateString('ko-KR', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit'
-              }).replace(/\s/g, '').replace(/\.$/, '')
-            } : undefined}
           />
 
           {/* 두 번째 동의서 */}
@@ -306,15 +297,6 @@ export default function ConsentPage() {
             imageSrc="/images/signature/agree-sig-2.png?v=20250924"
             signatureKey="signature2"
             title="두 번째 동의서"
-            researcherData={researcher ? {
-              name: researcher.name,
-              signature: researcher.signature_image,
-              date: new Date().toLocaleDateString('ko-KR', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit'
-              }).replace(/\s/g, '').replace(/\.$/, '')
-            } : undefined}
           />
             </div>
           </div>

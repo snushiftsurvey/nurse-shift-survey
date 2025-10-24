@@ -409,24 +409,30 @@ export function useConsentPDF() {
     formNumber: 1 | 2
   ): Promise<string> => {
     
-    // 이미지맵 좌표 정의 (ConsentFormOverlay와 동일)
+    // 이미지맵 좌표 정의 (ConsentFormOverlay와 동일) - 이미지 크기: 1654 x 2339
+    // PDF 생성 시 992px 너비로 축소되므로 비율 계산: 992 / 1654 = 0.5997
+    const scale = 992 / 1654
+    
     const COORDINATES_SIG1 = {
-      name1: { left: 139, top: 614, right: 340, bottom: 661 },
-      signature1: { left: 390, top: 614, right: 590, bottom: 661 },
-      date1: { left: 638, top: 630, right: 839, bottom: 660 },
-      name2: { left: 137, top: 698, right: 337, bottom: 739 },
-      // 화면에서는 signature2를 숨기지만, PDF에서는 researcher_signature만 배치
-      signature2: { left: 392, top: 698, right: 590, bottom: 739 },
-      date2: { left: 639, top: 709, right: 838, bottom: 740 }
+      // 연구참여자
+      name1: { left: Math.round(270 * scale), top: Math.round(952 * scale), right: Math.round(606 * scale), bottom: Math.round(1000 * scale) },
+      signature1: { left: Math.round(778 * scale), top: Math.round(946 * scale), right: Math.round(917 * scale), bottom: Math.round(994 * scale) },
+      date1: { left: Math.round(1020 * scale), top: Math.round(959 * scale), right: Math.round(1266 * scale), bottom: Math.round(1007 * scale) },
+      // 동의받는 연구원
+      name2: { left: Math.round(281 * scale), top: Math.round(1088 * scale), right: Math.round(617 * scale), bottom: Math.round(1136 * scale) },
+      signature2: { left: Math.round(780 * scale), top: Math.round(1081 * scale), right: Math.round(919 * scale), bottom: Math.round(1129 * scale) },
+      date2: { left: Math.round(1027 * scale), top: Math.round(1091 * scale), right: Math.round(1273 * scale), bottom: Math.round(1139 * scale) }
     }
 
     const COORDINATES_SIG2 = {
-      name1: { left: 139, top: 588, right: 340, bottom: 635 },
-      signature1: { left: 390, top: 588, right: 590, bottom: 635 },
-      date1: { left: 638, top: 604, right: 839, bottom: 634 },
-      name2: { left: 137, top: 672, right: 337, bottom: 713 },
-      signature2: { left: 392, top: 672, right: 590, bottom: 713 },
-      date2: { left: 639, top: 683, right: 838, bottom: 714 }
+      // 연구참여자 (동일한 좌표)
+      name1: { left: Math.round(270 * scale), top: Math.round(952 * scale), right: Math.round(606 * scale), bottom: Math.round(1000 * scale) },
+      signature1: { left: Math.round(778 * scale), top: Math.round(946 * scale), right: Math.round(917 * scale), bottom: Math.round(994 * scale) },
+      date1: { left: Math.round(1020 * scale), top: Math.round(959 * scale), right: Math.round(1266 * scale), bottom: Math.round(1007 * scale) },
+      // 동의받는 연구원 (동일한 좌표)
+      name2: { left: Math.round(281 * scale), top: Math.round(1088 * scale), right: Math.round(617 * scale), bottom: Math.round(1136 * scale) },
+      signature2: { left: Math.round(780 * scale), top: Math.round(1081 * scale), right: Math.round(919 * scale), bottom: Math.round(1129 * scale) },
+      date2: { left: Math.round(1027 * scale), top: Math.round(1091 * scale), right: Math.round(1273 * scale), bottom: Math.round(1139 * scale) }
     }
 
     const coordinates = formNumber === 1 ? COORDINATES_SIG1 : COORDINATES_SIG2

@@ -35,26 +35,30 @@ export default function ConsentFormOverlay({
   researcherData
 }: ConsentFormOverlayProps) {
 
-  // PDF 좌표 체계(기준: 992 x 1403)와 동일하게 사용
-  const BASE_WIDTH = 992
-  const BASE_HEIGHT = 1403
+  // 새 이미지 좌표 체계 (실제 이미지 크기: 1654 x 2339)
+  const BASE_WIDTH = 1654
+  const BASE_HEIGHT = 2339
 
   const COORDINATES_SIG1 = {
-    name1: { left: 139, top: 614, right: 340, bottom: 661 },
-    signature1: { left: 390, top: 614, right: 590, bottom: 661 },
-    date1: { left: 638, top: 630, right: 839, bottom: 660 },
-    name2: { left: 137, top: 698, right: 337, bottom: 739 },
-    signature2: { left: 392, top: 698, right: 590, bottom: 739 },
-    date2: { left: 639, top: 709, right: 838, bottom: 740 }
+    // 첫 번째 줄 (연구참여자)
+    name1: { left: 270, top: 952, right: 606, bottom: 1000 },      // 성명: 너비 336, 높이 48 (아래로 10px)
+    signature1: { left: 778, top: 946, right: 917, bottom: 994 },  // 서명: 너비 139, 높이 48 (아래로 10px)
+    date1: { left: 1020, top: 959, right: 1266, bottom: 1007 },    // 날짜: 너비 246, 높이 48 (아래로 20px)
+    // 두 번째 줄 (동의받는 연구원)
+    name2: { left: 281, top: 1088, right: 617, bottom: 1136 },     // 성명: 너비 336, 높이 48 (아래로 10px)
+    signature2: { left: 780, top: 1081, right: 919, bottom: 1129 }, // 서명: 너비 139, 높이 48 (아래로 10px)
+    date2: { left: 1027, top: 1091, right: 1273, bottom: 1139 }    // 날짜: 너비 246, 높이 48 (아래로 20px)
   }
 
   const COORDINATES_SIG2 = {
-    name1: { left: 139, top: 588, right: 340, bottom: 635 },
-    signature1: { left: 390, top: 588, right: 590, bottom: 635 },
-    date1: { left: 638, top: 604, right: 839, bottom: 634 },
-    name2: { left: 137, top: 672, right: 337, bottom: 713 },
-    signature2: { left: 392, top: 672, right: 590, bottom: 713 },
-    date2: { left: 639, top: 683, right: 838, bottom: 714 }
+    // 첫 번째 줄 (연구참여자)
+    name1: { left: 270, top: 952, right: 606, bottom: 1000 },      // 성명: 너비 336, 높이 48 (아래로 10px)
+    signature1: { left: 778, top: 946, right: 917, bottom: 994 },  // 서명: 너비 139, 높이 48 (아래로 10px)
+    date1: { left: 1020, top: 959, right: 1266, bottom: 1007 },    // 날짜: 너비 246, 높이 48 (아래로 20px)
+    // 두 번째 줄 (동의받는 연구원)
+    name2: { left: 281, top: 1088, right: 617, bottom: 1136 },     // 성명: 너비 336, 높이 48 (아래로 10px)
+    signature2: { left: 780, top: 1081, right: 919, bottom: 1129 }, // 서명: 너비 139, 높이 48 (아래로 10px)
+    date2: { left: 1027, top: 1091, right: 1273, bottom: 1139 }    // 날짜: 너비 246, 높이 48 (아래로 20px)
   }
 
   // 좌표를 스타일로 변환하는 함수
@@ -117,9 +121,6 @@ export default function ConsentFormOverlay({
           </div>
         )}
 
-        {/* 두 번째 서명 표시 영역 (동일한 서명 사용) */}
-        {/* 연구자 서명 영역은 화면 프리뷰에서 표시하지 않음 (PDF에서만 연구자 서명 렌더링) */}
-
         {/* 날짜(참여자) - 서명 완료 후에만 표시 */}
         {consentData.date && consentData.signature && (
           <div
@@ -137,7 +138,56 @@ export default function ConsentFormOverlay({
           </div>
         )}
 
-        {/* 웹 미리보기에서는 연구원/날짜 오버레이 숨김 (PDF에서만 렌더링) */}
+        {/* 🧪 테스트용: 동의받는 연구원 정보 표시 */}
+        {researcherData && (
+          <>
+            {/* 연구원 성명 */}
+            {researcherData.name && (
+              <div
+                className="absolute flex items-center justify-center"
+                style={getCoordinateStyle('name2')}
+              >
+                <img 
+                  src={researcherData.signature} 
+                  alt="연구원 성명" 
+                  className="max-w-full max-h-full object-contain"
+                />
+              </div>
+            )}
+
+            {/* 연구원 서명 */}
+            {researcherData.signature && (
+              <div
+                className="absolute flex items-center justify-center"
+                style={getCoordinateStyle('signature2')}
+              >
+                <img 
+                  src={researcherData.signature} 
+                  alt="연구원 서명" 
+                  className="max-w-full max-h-full object-contain"
+                  style={{ filter: 'contrast(1.2)' }}
+                />
+              </div>
+            )}
+
+            {/* 연구원 날짜 */}
+            {researcherData.date && (
+              <div
+                className="absolute flex items-center justify-center font-medium"
+                style={{
+                  ...getCoordinateStyle('date2'),
+                  fontSize: '11px',
+                  lineHeight: '1',
+                  color: '#000',
+                  WebkitTextSizeAdjust: '100%',
+                  textSizeAdjust: '100%'
+                }}
+              >
+                {researcherData.date}
+              </div>
+            )}
+          </>
+        )}
       </div>
 
     </div>
