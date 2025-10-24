@@ -139,19 +139,20 @@ export default function UnifiedSignatureModal({
     if (!container || currentStep !== 1) return
 
     let startY = 0
-    let isTouchingCanvas = false
 
     const handleTouchStart = (e: TouchEvent) => {
-      startY = e.touches[0].clientY
-      isTouchingCanvas = true
+      if (e.touches && e.touches.length > 0) {
+        startY = e.touches[0].clientY
+      }
       e.preventDefault()
       e.stopPropagation()
     }
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (!isTouchingCanvas) return
-      const currentY = e.touches[0].clientY
-      const deltaY = currentY - startY
+      if (e.touches && e.touches.length > 0) {
+        const currentY = e.touches[0].clientY
+        const deltaY = currentY - startY
+      }
       
       // 모든 스크롤 동작 차단 (위아래)
       e.preventDefault()
@@ -159,7 +160,6 @@ export default function UnifiedSignatureModal({
     }
 
     const handleTouchEnd = (e: TouchEvent) => {
-      isTouchingCanvas = false
       e.preventDefault()
       e.stopPropagation()
     }
@@ -181,19 +181,20 @@ export default function UnifiedSignatureModal({
     if (!container || currentStep !== 2) return
 
     let startY = 0
-    let isTouchingCanvas = false
 
     const handleTouchStart = (e: TouchEvent) => {
-      startY = e.touches[0].clientY
-      isTouchingCanvas = true
+      if (e.touches && e.touches.length > 0) {
+        startY = e.touches[0].clientY
+      }
       e.preventDefault()
       e.stopPropagation()
     }
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (!isTouchingCanvas) return
-      const currentY = e.touches[0].clientY
-      const deltaY = currentY - startY
+      if (e.touches && e.touches.length > 0) {
+        const currentY = e.touches[0].clientY
+        const deltaY = currentY - startY
+      }
       
       // 모든 스크롤 동작 차단 (위아래)
       e.preventDefault()
@@ -201,7 +202,6 @@ export default function UnifiedSignatureModal({
     }
 
     const handleTouchEnd = (e: TouchEvent) => {
-      isTouchingCanvas = false
       e.preventDefault()
       e.stopPropagation()
     }
