@@ -27,6 +27,9 @@ export default function UnifiedSignatureModal({
   const signatureCanvasRef = useRef<SignatureCanvas>(null)
   const nameContainerRef = useRef<HTMLDivElement>(null)
   const signatureContainerRef = useRef<HTMLDivElement>(null)
+  const scrollGuardRef = useRef<HTMLDivElement>(null)
+  const nameAutosaveTimerRef = useRef<number | null>(null)
+  const signatureAutosaveTimerRef = useRef<number | null>(null)
 
   // 모달이 열릴 때 초기 데이터 설정
   useEffect(() => {
@@ -45,6 +48,102 @@ export default function UnifiedSignatureModal({
       setSignature('')
     }
   }, [isOpen, initialData])
+
+  // 모달 오픈 시: body 스크롤 잠금 + 스크롤가드 초기화 + 임시 저장 복원
+  useEffect(() => {
+    if (!isOpen) return
+
+    // 1) body scroll lock
+    const body = document.body
+    const prevStyle = body.getAttribute('style') || ''
+    const scrollY = window.scrollY
+    body.style.position = 'fixed'
+    body.style.top = `-${scrollY}px`
+    body.style.left = '0'
+    body.style.right = '0'
+    body.style.width = '100%'
+    body.style.overflow = 'hidden'
+    body.style.overscrollBehavior = 'none'
+
+    // 2) scroll guard 준비
+    if (scrollGuardRef.current) {
+      // 약간의 버퍼로 바운스 방지
+      scrollGuardRef.current.scrollTop = 1
+    }
+
+    // 3) 임시 저장 복원
+    try {
+      const nameDraft = sessionStorage.getItem('consent_name_draft')
+      if (nameDraft && nameCanvasRef.current) {
+        nameCanvasRef.current.fromDataURL(nameDraft)
+      }
+      const sigDraft = sessionStorage.getItem('consent_signature_draft')
+      if (sigDraft && signatureCanvasRef.current) {
+        signatureCanvasRef.current.fromDataURL(sigDraft)
+      }
+    } catch {}
+
+    // cleanup: body unlock
+    return () => {
+      body.setAttribute('style', prevStyle)
+      window.scrollTo(0, scrollY)
+      if (nameAutosaveTimerRef.current) {
+        clearInterval(nameAutosaveTimerRef.current)
+        nameAutosaveTimerRef.current = null
+      }
+      if (signatureAutosaveTimerRef.current) {
+        clearInterval(signatureAutosaveTimerRef.current)
+        signatureAutosaveTimerRef.current = null
+      }
+    }
+  }, [isOpen])
+
+  // 스크롤가드 onScroll 핸들러 (루트 Pull-to-Refresh 차단)
+  const handleScrollGuard = (e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget
+    if (el.scrollTop <= 0) el.scrollTop = 1
+    const max = el.scrollHeight - el.clientHeight
+    if (el.scrollTop >= max) el.scrollTop = Math.max(0, max - 1)
+  }
+
+  // 서명/성명 자동 저장 타이머 제어
+  const startNameAutosave = () => {
+    if (nameAutosaveTimerRef.current) return
+    nameAutosaveTimerRef.current = window.setInterval(() => {
+      if (nameCanvasRef.current && !nameCanvasRef.current.isEmpty()) {
+        try {
+          const data = nameCanvasRef.current.toDataURL('image/png')
+          sessionStorage.setItem('consent_name_draft', data)
+        } catch {}
+      }
+    }, 300)
+  }
+
+  const stopNameAutosave = () => {
+    if (nameAutosaveTimerRef.current) {
+      clearInterval(nameAutosaveTimerRef.current)
+      nameAutosaveTimerRef.current = null
+    }
+  }
+
+  const startSignatureAutosave = () => {
+    if (signatureAutosaveTimerRef.current) return
+    signatureAutosaveTimerRef.current = window.setInterval(() => {
+      if (signatureCanvasRef.current && !signatureCanvasRef.current.isEmpty()) {
+        try {
+          const data = signatureCanvasRef.current.toDataURL('image/png')
+          sessionStorage.setItem('consent_signature_draft', data)
+        } catch {}
+      }
+    }, 300)
+  }
+
+  const stopSignatureAutosave = () => {
+    if (signatureAutosaveTimerRef.current) {
+      clearInterval(signatureAutosaveTimerRef.current)
+      signatureAutosaveTimerRef.current = null
+    }
+  }
 
   // 모바일 뷰포트 리셋
   const resetMobileViewport = () => {
@@ -150,7 +249,12 @@ export default function UnifiedSignatureModal({
         WebkitOverflowScrolling: 'auto'
       }}
     >
-      <div className="w-full max-w-md mx-auto p-6 flex flex-col h-full">
+      <div
+        ref={scrollGuardRef}
+        className="w-full max-w-md mx-auto p-6 flex flex-col h-full"
+        style={{ height: '100dvh', overflowY: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
+        onScroll={handleScrollGuard}
+      >
         {/* 헤더 */}
         <div className="text-center mb-6">
           <h2 className="text-xl font-bold text-gray-900 mb-2">{getStepTitle()}</h2>
@@ -202,6 +306,16 @@ export default function UnifiedSignatureModal({
                   }}
                   minWidth={3}
                   maxWidth={6}
+                  onBegin={startNameAutosave}
+                  onEnd={() => {
+                    stopNameAutosave()
+                    if (nameCanvasRef.current && !nameCanvasRef.current.isEmpty()) {
+                      try {
+                        const data = nameCanvasRef.current.toDataURL('image/png')
+                        sessionStorage.setItem('consent_name_draft', data)
+                      } catch {}
+                    }
+                  }}
                 />
               </div>
             </div>
@@ -238,6 +352,16 @@ export default function UnifiedSignatureModal({
                   }}
                   minWidth={3}
                   maxWidth={6}
+                  onBegin={startSignatureAutosave}
+                  onEnd={() => {
+                    stopSignatureAutosave()
+                    if (signatureCanvasRef.current && !signatureCanvasRef.current.isEmpty()) {
+                      try {
+                        const data = signatureCanvasRef.current.toDataURL('image/png')
+                        sessionStorage.setItem('consent_signature_draft', data)
+                      } catch {}
+                    }
+                  }}
                 />
               </div>
             </div>
