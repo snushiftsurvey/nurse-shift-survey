@@ -133,77 +133,7 @@ export default function UnifiedSignatureModal({
     }
   }
 
-  // 카카오톡 인앱 브라우저 터치 이벤트 제어 (성명)
-  useEffect(() => {
-    if (!isOpen || currentStep !== 1) return
-    
-    const container = nameContainerRef.current
-    if (!container) return
-
-    let startY = 0
-
-    const handleTouchStart = (e: TouchEvent) => {
-      if (e.touches && e.touches.length > 0) {
-        startY = e.touches[0].clientY
-      }
-    }
-
-    const handleTouchMove = (e: TouchEvent) => {
-      if (!e.touches || e.touches.length === 0) return
-      
-      const currentY = e.touches[0].clientY
-      const deltaY = currentY - startY
-      
-      // Pull-to-Refresh만 차단 (아래로 당기는 동작)
-      if (deltaY > 5 && window.scrollY === 0) {
-        e.preventDefault()
-      }
-    }
-
-    container.addEventListener('touchstart', handleTouchStart, { passive: true })
-    container.addEventListener('touchmove', handleTouchMove, { passive: false })
-
-    return () => {
-      container.removeEventListener('touchstart', handleTouchStart)
-      container.removeEventListener('touchmove', handleTouchMove)
-    }
-  }, [isOpen, currentStep])
-
-  // 카카오톡 인앱 브라우저 터치 이벤트 제어 (서명)
-  useEffect(() => {
-    if (!isOpen || currentStep !== 2) return
-    
-    const container = signatureContainerRef.current
-    if (!container) return
-
-    let startY = 0
-
-    const handleTouchStart = (e: TouchEvent) => {
-      if (e.touches && e.touches.length > 0) {
-        startY = e.touches[0].clientY
-      }
-    }
-
-    const handleTouchMove = (e: TouchEvent) => {
-      if (!e.touches || e.touches.length === 0) return
-      
-      const currentY = e.touches[0].clientY
-      const deltaY = currentY - startY
-      
-      // Pull-to-Refresh만 차단 (아래로 당기는 동작)
-      if (deltaY > 5 && window.scrollY === 0) {
-        e.preventDefault()
-      }
-    }
-
-    container.addEventListener('touchstart', handleTouchStart, { passive: true })
-    container.addEventListener('touchmove', handleTouchMove, { passive: false })
-
-    return () => {
-      container.removeEventListener('touchstart', handleTouchStart)
-      container.removeEventListener('touchmove', handleTouchMove)
-    }
-  }, [isOpen, currentStep])
+  // 인앱 브라우저 스크롤 억제는 인라인 핸들러로 처리 (Hooks 순서 고정)
 
   if (!isOpen) return null
 
@@ -251,6 +181,18 @@ export default function UnifiedSignatureModal({
                   WebkitUserSelect: 'none',
                   userSelect: 'none'
                 }}
+                onTouchStart={(e) => {
+                  // 멀티터치/스크롤 방지 (카카오 인앱 대응)
+                  if (e.touches && e.touches.length > 1) {
+                    e.preventDefault()
+                  }
+                }}
+                onTouchMove={(e) => {
+                  // 페이지 최상단에서 아래로 당기는 동작만 차단
+                  if (window.scrollY === 0) {
+                    e.preventDefault()
+                  }
+                }}
               >
                 <SignatureCanvas
                   ref={nameCanvasRef}
@@ -276,6 +218,16 @@ export default function UnifiedSignatureModal({
                   overscrollBehavior: 'none',
                   WebkitUserSelect: 'none',
                   userSelect: 'none'
+                }}
+                onTouchStart={(e) => {
+                  if (e.touches && e.touches.length > 1) {
+                    e.preventDefault()
+                  }
+                }}
+                onTouchMove={(e) => {
+                  if (window.scrollY === 0) {
+                    e.preventDefault()
+                  }
                 }}
               >
                 <SignatureCanvas
