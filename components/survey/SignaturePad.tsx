@@ -69,7 +69,13 @@ export default function SignaturePad({ onSignatureChange, signatureData }: Signa
               width: 400,
               height: 150,
               className: 'signature-canvas w-full border-0',
-              style: { touchAction: 'none' }
+              style: { 
+                touchAction: 'none',
+                overscrollBehavior: 'contain',
+                WebkitUserSelect: 'none',
+                userSelect: 'none',
+                WebkitTouchCallout: 'none'
+              }
             }}
             onEnd={handleEnd}
           />

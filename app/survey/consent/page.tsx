@@ -248,7 +248,7 @@ export default function ConsentPage() {
             <p className="text-sm text-gray-600 mt-2">2단계 / 6단계</p>
           </div>
 
-          <div className="mb-8">
+          <div className="mb-8" style={{ touchAction: 'pan-y', overscrollBehavior: 'contain' }}>
             <div className="bg-sky-50 px-4 py-3 mb-6">
               <h2 className="text-lg font-semibold text-gray-800">
                 연구 참여자용 설명문 및 동의서
@@ -256,7 +256,7 @@ export default function ConsentPage() {
             </div>
             
             {/* 연구참여자용 설명문 이미지 */}
-            <div className="space-y-6 mb-8">
+            <div className="space-y-6 mb-8" style={{ touchAction: 'pan-y', overscrollBehavior: 'contain' }}>
               <div className="border border-gray-200 rounded-lg overflow-hidden">
                 <Image
                   src="/images/signature/info-1.png?20250924"

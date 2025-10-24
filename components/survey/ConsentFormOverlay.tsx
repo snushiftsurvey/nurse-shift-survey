@@ -80,9 +80,25 @@ export default function ConsentFormOverlay({
 
 
   return (
-    <div className="relative w-full">
+    <div 
+      className="relative w-full" 
+      style={{ 
+        touchAction: 'pan-y', 
+        overscrollBehavior: 'contain',
+        WebkitUserSelect: 'none',
+        userSelect: 'none',
+        WebkitTouchCallout: 'none'
+      }}
+    >
       {/* 동의서 이미지 (연구참여자용 설명문과 동일한 테두리 스타일) */}
-      <div className="relative border border-gray-200 rounded-lg bg-white shadow-sm p-2">
+      <div 
+        className="relative border border-gray-200 rounded-lg bg-white shadow-sm p-2"
+        style={{ 
+          touchAction: 'pan-y', 
+          overscrollBehavior: 'contain',
+          WebkitOverflowScrolling: 'auto'
+        }}
+      >
         <Image
           src={imageSrc}
           alt={title || "동의서"}

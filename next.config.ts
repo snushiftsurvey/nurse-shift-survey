@@ -17,7 +17,7 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
 
-  // PDF 생성을 위한 정적 파일 CORS 설정
+  // PDF 생성을 위한 정적 파일 CORS 설정 및 캐시 무효화
   async headers() {
     return [
       {
@@ -39,6 +39,60 @@ const nextConfig: NextConfig = {
           {
             key: 'Cross-Origin-Resource-Policy',
             value: 'cross-origin',
+          },
+        ],
+      },
+      {
+        // CSS 파일 캐시 무효화 (항상 최신 버전 사용)
+        source: '/:path*.css',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+          },
+          {
+            key: 'Pragma',
+            value: 'no-cache',
+          },
+          {
+            key: 'Expires',
+            value: '0',
+          },
+        ],
+      },
+      {
+        // 동의서 페이지 캐시 무효화
+        source: '/survey/consent',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+          },
+          {
+            key: 'Pragma',
+            value: 'no-cache',
+          },
+          {
+            key: 'Expires',
+            value: '0',
+          },
+        ],
+      },
+      {
+        // 모든 설문 페이지 캐시 무효화
+        source: '/survey/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+          },
+          {
+            key: 'Pragma',
+            value: 'no-cache',
+          },
+          {
+            key: 'Expires',
+            value: '0',
           },
         ],
       },

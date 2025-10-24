@@ -1,3 +1,4 @@
+/* CSS Version: 2025.01.24-v2 - Pull-to-Refresh 완전 차단 강화 */
 @import "tailwindcss";
 
 :root {
@@ -31,20 +32,27 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
-/* 전자서명 캔버스 스타일 */
+/* 전자서명 캔버스 스타일 - Pull-to-Refresh 완전 차단 */
 .signature-canvas {
   border: 0;
   display: block;
   width: 100%;
   height: 150px;
   cursor: crosshair;
-  touch-action: none;
+  touch-action: none !important;
+  overscroll-behavior: contain !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
 }
 
 /* 모바일에서 서명 캔버스 최적화 */
 @media (max-width: 768px) {
   .signature-canvas {
     height: 120px;
+    /* iOS Safari 새로고침 완전 차단 */
+    overscroll-behavior-y: contain !important;
+    -webkit-overflow-scrolling: auto !important;
   }
 }
 
@@ -54,12 +62,16 @@ body {
   outline-offset: 2px;
 }
 
-/* 오버레이 서명 캔버스 스타일 */
+/* 오버레이 서명 캔버스 스타일 - Pull-to-Refresh 완전 차단 */
 .signature-overlay-canvas {
   border: 0;
   display: block;
   cursor: crosshair;
-  touch-action: none;
+  touch-action: none !important;
+  overscroll-behavior: contain !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
   background: rgba(255, 255, 255, 0.1);
 }
 
