@@ -23,7 +23,7 @@ export default function PersonalInfoPage() {
   const isAccessible = useProtectedRoute()
   
   // 동의서 관련 훅
-  const { draft, clearDraft, refresh } = useConsentDraft()
+  const { draft, loading: draftLoading, clearDraft, refresh } = useConsentDraft()
   const { generateAndSavePDF, generating } = useConsentPDF()
   const { researcher } = useResearcher()
 
@@ -32,6 +32,17 @@ export default function PersonalInfoPage() {
     console.log('📄 [PERSONAL-INFO 페이지] - 로컬 저장소 데이터 로딩 시작')
     refresh() // 로컬 저장소에서 서명 데이터 로딩
   }, [])
+
+  // draft 로딩 상태 확인
+  useEffect(() => {
+    console.log('🔍 [PERSONAL-INFO 페이지] Draft 상태:', {
+      draftExists: !!draft,
+      hasSignature1: !!draft?.consent_signature1,
+      hasSignature2: !!draft?.consent_signature2,
+      hasDate: !!draft?.consent_date,
+      loading: draftLoading
+    })
+  }, [draft, draftLoading])
 
 
   // 설문이 시작되지 않았으면 빈 화면 표시 (리다이렉트 진행 중)
@@ -69,14 +80,20 @@ export default function PersonalInfoPage() {
         })
         
         // 🔍 PDF 생성 조건 상세 확인 (개인정보 미동의)
-        console.log('🔍 PDF 생성 조건 확인:', {
+        const debugInfo = {
           draft_exists: !!draft,
           researcher_exists: !!researcher,  
           surveyResult_exists: !!surveyResult,
           draft_keys: draft ? Object.keys(draft) : 'NULL',
           researcher_name: researcher?.name || 'NULL',
           surveyResult_value: surveyResult || 'NULL'
-        })
+        }
+        console.log('🔍 PDF 생성 조건 확인:', debugInfo)
+        
+        // 모바일 디버깅용 alert (임시)
+        if (!draft || !researcher || !surveyResult) {
+          alert(`[디버그] PDF 생성 실패:\ndraft: ${!!draft}\nresearcher: ${!!researcher}\nsurveyResult: ${!!surveyResult}`)
+        }
 
         if (draft && researcher && surveyResult) {
           console.log('✅ 모든 조건 충족 - PDF 생성 시작 (개인정보 미동의)...')

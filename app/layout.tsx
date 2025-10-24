@@ -33,6 +33,11 @@ const spoqaHanSansNeo = localFont({
 export const metadata: Metadata = {
   title: '간호사 교대근무 설문조사',
   description: '서울대학교 간호대학 교대근무 간호사 2개월 근무표 수집 연구',
+  other: {
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+  },
 }
 
 export default function RootLayout({

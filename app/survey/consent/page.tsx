@@ -284,7 +284,7 @@ export default function ConsentPage() {
             consentData={consentData}
             onNameChange={handleNameChange}
             onSignatureChange={handleSignatureChange}
-            imageSrc="/images/signature/agree-sig-1.png?0924?2025-0924"
+            imageSrc="/images/signature/agree-sig-1.png?v=20250124"
             signatureKey="signature1"
             title="첫 번째 동의서"
           />
@@ -294,7 +294,7 @@ export default function ConsentPage() {
             consentData={consentData}
             onNameChange={handleNameChange}
             onSignatureChange={handleSignatureChange}
-            imageSrc="/images/signature/agree-sig-2.png?v=20250924"
+            imageSrc="/images/signature/agree-sig-2.png?v=20250124"
             signatureKey="signature2"
             title="두 번째 동의서"
           />
