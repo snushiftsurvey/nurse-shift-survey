@@ -25,6 +25,8 @@ export default function UnifiedSignatureModal({
   
   const nameCanvasRef = useRef<SignatureCanvas>(null)
   const signatureCanvasRef = useRef<SignatureCanvas>(null)
+  const nameContainerRef = useRef<HTMLDivElement>(null)
+  const signatureContainerRef = useRef<HTMLDivElement>(null)
 
   // 모달이 열릴 때 초기 데이터 설정
   useEffect(() => {
@@ -131,6 +133,90 @@ export default function UnifiedSignatureModal({
     }
   }
 
+  // 카카오톡 인앱 브라우저 터치 이벤트 제어 (성명)
+  useEffect(() => {
+    const container = nameContainerRef.current
+    if (!container || currentStep !== 1) return
+
+    let startY = 0
+    let isTouchingCanvas = false
+
+    const handleTouchStart = (e: TouchEvent) => {
+      startY = e.touches[0].clientY
+      isTouchingCanvas = true
+      e.preventDefault()
+      e.stopPropagation()
+    }
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!isTouchingCanvas) return
+      const currentY = e.touches[0].clientY
+      const deltaY = currentY - startY
+      
+      // 모든 스크롤 동작 차단 (위아래)
+      e.preventDefault()
+      e.stopPropagation()
+    }
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      isTouchingCanvas = false
+      e.preventDefault()
+      e.stopPropagation()
+    }
+
+    container.addEventListener('touchstart', handleTouchStart, { passive: false })
+    container.addEventListener('touchmove', handleTouchMove, { passive: false })
+    container.addEventListener('touchend', handleTouchEnd, { passive: false })
+
+    return () => {
+      container.removeEventListener('touchstart', handleTouchStart)
+      container.removeEventListener('touchmove', handleTouchMove)
+      container.removeEventListener('touchend', handleTouchEnd)
+    }
+  }, [currentStep])
+
+  // 카카오톡 인앱 브라우저 터치 이벤트 제어 (서명)
+  useEffect(() => {
+    const container = signatureContainerRef.current
+    if (!container || currentStep !== 2) return
+
+    let startY = 0
+    let isTouchingCanvas = false
+
+    const handleTouchStart = (e: TouchEvent) => {
+      startY = e.touches[0].clientY
+      isTouchingCanvas = true
+      e.preventDefault()
+      e.stopPropagation()
+    }
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!isTouchingCanvas) return
+      const currentY = e.touches[0].clientY
+      const deltaY = currentY - startY
+      
+      // 모든 스크롤 동작 차단 (위아래)
+      e.preventDefault()
+      e.stopPropagation()
+    }
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      isTouchingCanvas = false
+      e.preventDefault()
+      e.stopPropagation()
+    }
+
+    container.addEventListener('touchstart', handleTouchStart, { passive: false })
+    container.addEventListener('touchmove', handleTouchMove, { passive: false })
+    container.addEventListener('touchend', handleTouchEnd, { passive: false })
+
+    return () => {
+      container.removeEventListener('touchstart', handleTouchStart)
+      container.removeEventListener('touchmove', handleTouchMove)
+      container.removeEventListener('touchend', handleTouchEnd)
+    }
+  }, [currentStep])
+
   if (!isOpen) return null
 
   return (
@@ -168,6 +254,7 @@ export default function UnifiedSignatureModal({
           {currentStep === 1 && (
             <div className="flex-1 flex flex-col">
               <div 
+                ref={nameContainerRef}
                 className="border-2 border-gray-300 rounded-lg bg-white signature-input-area" 
                 style={{ 
                   height: '150px', 
@@ -193,6 +280,7 @@ export default function UnifiedSignatureModal({
           {currentStep === 2 && (
             <div className="flex-1 flex flex-col">
               <div 
+                ref={signatureContainerRef}
                 className="border-2 border-gray-300 rounded-lg bg-white signature-input-area" 
                 style={{ 
                   height: '150px', 
