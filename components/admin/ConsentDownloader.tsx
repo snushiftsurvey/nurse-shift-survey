@@ -57,7 +57,7 @@ export default function ConsentDownloader({ consentRecord }: ConsentDownloaderPr
       }
       
       if (pdfData) {
-        // 날짜를 YYYYMMDD 형식으로 변환 (2025.01.01 → 20250101)  
+        // 날짜를 YYYYMMDD 형식으로 변환 (2025.01.01 → 20250101)
         const dateFormatted = (consentRecord.consent_date || '2025.01.01').replace(/\./g, '')
         const fileName = `동의서_${consentRecord.survey_id?.substring(0, 8) || 'unknown'}_${dateFormatted}.pdf`
 

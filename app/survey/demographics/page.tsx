@@ -539,8 +539,8 @@ export default function DemographicsPage() {
                   })()}
                 </div>
 
-                {/* 개발 테스트용 빠른 채우기 버튼 */}
-                {(() => {
+                {/* 개발 테스트용 빠른 채우기 버튼 - 배포 시 주석 처리됨 */}
+                {/* {(() => {
                   const validWorkTypes = workTypes.filter(wt => wt.name.trim() !== '' && wt.customBreakTime && wt.customBreakTime.trim() !== '')
                   if (validWorkTypes.length > 0) {
                     return (
@@ -563,7 +563,7 @@ export default function DemographicsPage() {
                     )
                   }
                   return null
-                })()}
+                })()} */}
 
                 <CalendarTable
                   workTypes={workTypes}

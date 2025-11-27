@@ -29,6 +29,24 @@ export const supabase = (() => {
         }
       }
     })
+
+    // 🛡️ 유효하지 않은 토큰 감지 시 자동으로 세션 클리어
+    supabaseInstance.auth.onAuthStateChange((event, session) => {
+      if (event === 'TOKEN_REFRESHED' && !session) {
+        console.warn('⚠️ 토큰 갱신 실패 - 세션 클리어')
+        supabaseInstance.auth.signOut()
+      }
+    })
+
+    // 🛡️ 초기 세션 검증
+    if (typeof window !== 'undefined') {
+      supabaseInstance.auth.getSession().catch((error: any) => {
+        if (error?.message?.includes('Refresh Token')) {
+          console.warn('⚠️ 유효하지 않은 Refresh Token 감지 - 세션 클리어')
+          supabaseInstance.auth.signOut()
+        }
+      })
+    }
   }
   return supabaseInstance
 })()
