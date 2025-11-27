@@ -43,6 +43,10 @@ export default function HomePage() {
       // 강제 전체 초기화
       forceClearAll()
       
+      // sessionStorage 서명 임시 데이터 클리어
+      sessionStorage.removeItem('consent_name_draft')
+      sessionStorage.removeItem('consent_signature_draft')
+      
       // 설문 시작 상태 설정
       startSurvey()
       
