@@ -62,13 +62,23 @@ export default function PersonalInfoPage() {
   const handleSubmit = async () => {
     if (isSubmitting) return
 
+    // 동의서 데이터 필수 검증 (URL 조작 방지)
+    if (!draft || !draft.consent_signature1) {
+      alert('동의서 작성이 필요합니다.\n동의서 페이지로 이동합니다.')
+      router.push('/survey/consent')
+      return
+    }
+
     try {
       setIsSubmitting(true)
 
       if (consentPersonalInfo === false) {
         // 개인정보 수집에 동의하지 않은 경우 - 설문 데이터만 저장
         console.log('📝 개인정보 미동의 - 설문 데이터만 저장')
-        const surveyResult = await submitSurvey({ consentPersonalInfo: false })
+        const surveyResult = await submitSurvey({ 
+          consentPersonalInfo: false,
+          consentDraftData: draft
+        })
 
         // 🎯 서명 데이터 저장 (개인정보 미동의)
         console.log('서명 데이터 저장 조건 확인 (개인정보 미동의):', {
@@ -225,7 +235,8 @@ export default function PersonalInfoPage() {
         console.log('📋 제출할 개인정보:', personalInfo)
         const surveyResult = await submitSurvey({ 
           consentPersonalInfo: true, 
-          personalInfo 
+          personalInfo,
+          consentDraftData: draft
         })
 
         // 🎯 서명 데이터 저장 (개인정보 동의)

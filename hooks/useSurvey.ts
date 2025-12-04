@@ -30,6 +30,7 @@ export function useSurvey() {
   const submitSurvey = useCallback(async (overrides?: {
     consentPersonalInfo?: boolean
     personalInfo?: Partial<PersonalInfo>
+    consentDraftData?: any
   }) => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true })
@@ -67,6 +68,7 @@ export function useSurvey() {
         work_types: state.surveyData.workTypes || [],
         off_duty_types: state.surveyData.offDutyTypes || [],
         consent_personal_info: finalConsentPersonalInfo || false,
+        consent_draft_data: overrides?.consentDraftData || null,
       }
 
 
