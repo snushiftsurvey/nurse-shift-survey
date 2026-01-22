@@ -1,16 +1,57 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useSurvey } from '@/hooks/useSurvey'
+
+// 설문 마감 시각: 2026-01-26 00:00:00 KST
+const SURVEY_DEADLINE = new Date('2026-01-26T00:00:00+09:00')
 
 export default function SurveyIntroPage() {
   const { startSurvey } = useSurvey()
+
+  // 마감 여부 체크
+  const isDeadlinePassed = useMemo(() => {
+    return new Date() >= SURVEY_DEADLINE
+  }, [])
 
   useEffect(() => {
     // 설문 페이지에 접근하면 설문 시작 플래그 설정
     startSurvey()
   }, [startSurvey]) // useCallback으로 메모이제이션된 함수이므로 안전함
+  // 마감된 경우 다른 UI 표시
+  if (isDeadlinePassed) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white rounded-lg shadow-lg p-6 md:p-8">
+            <div className="text-center py-12">
+              <div className="mb-6">
+                <svg className="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
+                설문이 마감되었습니다
+              </h1>
+              <p className="text-gray-600 mb-8">
+                본 설문은 2026년 1월 25일 자정에 마감되었습니다.<br/>
+                설문에 관심을 가져주셔서 감사합니다.
+              </p>
+              <Link 
+                href="/"
+                className="inline-block px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                홈으로 돌아가기
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // 정상 설문 진행 UI
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
       <div className="max-w-4xl mx-auto">
