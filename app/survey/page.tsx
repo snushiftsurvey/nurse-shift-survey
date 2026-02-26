@@ -4,8 +4,8 @@ import Link from 'next/link'
 import { useEffect, useMemo } from 'react'
 import { useSurvey } from '@/hooks/useSurvey'
 
-// 설문 마감 시각: 2026-01-26 00:00:00 KST
-const SURVEY_DEADLINE = new Date('2026-01-26T00:00:00+09:00')
+// 설문 마감 시각: 2026-01-26 00:00:00 KST (현재 임시로 비활성화)
+const SURVEY_DEADLINE = new Date('2099-12-31T23:59:59+09:00')
 
 export default function SurveyIntroPage() {
   const { startSurvey } = useSurvey()
