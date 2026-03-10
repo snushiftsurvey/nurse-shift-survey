@@ -4,8 +4,8 @@ import Link from 'next/link'
 import { useEffect, useMemo } from 'react'
 import { useSurvey } from '@/hooks/useSurvey'
 
-// 설문 마감 시각: 2026-01-26 00:00:00 KST (현재 임시로 비활성화)
-const SURVEY_DEADLINE = new Date('2099-12-31T23:59:59+09:00')
+// 설문 마감 시각: 2026-03-10 00:00:00 KST
+const SURVEY_DEADLINE = new Date('2026-03-10T00:00:00+09:00')
 
 export default function SurveyIntroPage() {
   const { startSurvey } = useSurvey()
@@ -35,7 +35,7 @@ export default function SurveyIntroPage() {
                 설문이 마감되었습니다
               </h1>
               <p className="text-gray-600 mb-8">
-                본 설문은 2026년 1월 25일 자정에 마감되었습니다.<br/>
+                본 설문은 마감되었습니다.<br/>
                 설문에 관심을 가져주셔서 감사합니다.
               </p>
               <Link 
